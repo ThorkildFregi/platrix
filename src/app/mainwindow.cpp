@@ -3,53 +3,8 @@
 #include "mainwindow.h"
 
 MainWindow::MainWindow()
-{
-    QWidget *widget = new QWidget;
-    setCentralWidget(widget);
-
-    QString path = QCoreApplication::applicationDirPath();
-
-    QFileSystemModel *model = new QFileSystemModel;
-    model->setRootPath(path);
-
-    QLabel *customHeader = new QLabel("Explorer", this);
-    customHeader->setStyleSheet("background-color: #470242; color: white; padding: 2px;");
-    customHeader->setFixedHeight(25);
-
-    QModelIndex rootIndex = model->index(path);
-
-    QTreeView *tree = new QTreeView();
-    tree->setModel(model);
-    tree->setRootIndex(rootIndex);
-    tree->header()->hide();
-    tree->hideColumn(1);
-    tree->hideColumn(2);
-    tree->hideColumn(3);
-
-    infoLabel = new QLabel("<i>Choose a menu option, or right-click to invoke a context menu !</i>");
-
-    infoLabel->setFrameStyle(QFrame::StyledPanel | QFrame::Sunken);
-    infoLabel->setAlignment(Qt::AlignCenter);
-
-    QVBoxLayout *fileSysLayout = new QVBoxLayout;
-    fileSysLayout->addWidget(customHeader);
-    fileSysLayout->addWidget(tree);
-
-    QWidget *leftSideWidget = new QWidget;
-    leftSideWidget->setLayout(fileSysLayout);
-
-    QSplitter *splitter = new QSplitter(Qt::Horizontal, this);
-    splitter->addWidget(leftSideWidget);
-    splitter->addWidget(infoLabel);
-
-    splitter->setSizes(QList<int>() << 200 << 600);
-    
-    QHBoxLayout *layout = new QHBoxLayout;
-    layout->setContentsMargins(5, 5, 5, 5);
-    layout->addWidget(splitter);
-
-    widget->setLayout(layout);
-
+{   
+    createTextEditor();
     createActions();
     createMenus();
 
@@ -77,47 +32,60 @@ void MainWindow::contextMenuEvent(QContextMenuEvent *event)
 // Slot actions
 void MainWindow::newFile()
 {
-    infoLabel->setText("Invoked <b>File|New<b>");
+
 }
 
 void MainWindow::open()
 {
-    infoLabel->setText("Invoked <b>File|Open<b>");
 }
 
 void MainWindow::save()
 {
-    infoLabel->setText("Invoked <b>File|Save<b>");
+    int currentIndex = tabs->currentIndex();
+    if (currentIndex == -1) return;
+
+    QString filePath = openedFiles.key(currentIndex);
+
+    QTextEdit *currentEditor = qobject_cast<QTextEdit*>(tabs->currentWidget());
+
+    if (currentEditor && !filePath.isEmpty()) {
+        QFile file(filePath);
+
+        if (file.open(QIODevice::WriteOnly | QIODevice::Text | QIODevice::Truncate)) {
+            QTextStream out(&file);
+
+            out << currentEditor->toPlainText();
+
+            statusBar()->showMessage("Saved : " + filePath, 2000);
+
+            file.close();
+        }
+    }
 }
 
 void MainWindow::undo()
 {
-    infoLabel->setText("Invoked <b>Edit|Undo<b>");
 }
 
 void MainWindow::redo()
 {
-    infoLabel->setText("Invoked <b>Edit|Redo<b>");
 }
 
 void MainWindow::cut()
 {
-    infoLabel->setText("Invoked <b>Edit|Cut<b>");
 }
 
 void MainWindow::copy()
 {
-    infoLabel->setText("Invoked <b>Edit|Copy<b>");
 }
 
 void MainWindow::paste()
 {
-    infoLabel->setText("Invoked <b>Edit|Paste<b>");
+
 }
 
 void MainWindow::about()
 {
-    infoLabel->setText(tr("Invoked <b>Help|About</b>"));
     QMessageBox::about(this, "About Menu", "The <b>Menu</b> example shows how to create menu-bar menus and context menus.");
 }
 
@@ -184,6 +152,43 @@ void MainWindow::createActions()
     aboutAct->setStatusTip("Show the application's About box");
 
     connect(aboutAct, &QAction::triggered, this, &MainWindow::about);
+
+    connect(tabs, &QTabWidget::tabCloseRequested, [this](int index) {
+        QWidget *w = tabs->widget(index);
+
+        QString path = openedFiles.key(index);
+        openedFiles.remove(path);
+
+        tabs->removeTab(index);
+        delete w;
+    });
+
+    connect(explorer, &QTreeView::doubleClicked, [this](const QModelIndex &index) {
+        QString filePath = model->filePath(index);
+        QFileInfo info(filePath);
+
+        if (info.isFile()) {
+            if (openedFiles.contains(filePath)) {
+                tabs->setCurrentIndex(openedFiles.value(filePath));
+                return;
+            }
+
+            QFile file(filePath);
+            if (file.open(QIODevice::ReadOnly | QIODevice::Text)) {
+                QTextEdit *newEditor = new QTextEdit();
+                newEditor->setPlainText(file.readAll());
+                
+                int newIndex = tabs->addTab(newEditor, info.fileName());
+                tabs->setCurrentIndex(newIndex);
+
+                openedFiles.insert(filePath, newIndex);
+
+                statusBar()->showMessage("File loaded : " + filePath, 5000);
+
+                file.close();
+            }
+        }
+    });
 }
 
 void MainWindow::createMenus()
@@ -203,6 +208,58 @@ void MainWindow::createMenus()
 
     helpMenu = menuBar()->addMenu("&Help");
     helpMenu->addAction(aboutAct);
+}
 
+void MainWindow::createTextEditor()
+{
+    centralWidget = new QWidget;
+    setCentralWidget(centralWidget);
 
+    QString appDataPath = QStandardPaths::writableLocation(QStandardPaths::AppLocalDataLocation);
+    QDir dir(appDataPath);
+
+    if (!dir.exists()) {dir.mkpath(".");}
+
+    QString targetPath = dir.absolutePath();
+
+    model = new QFileSystemModel;
+    model->setRootPath(targetPath);
+
+    header = new QLabel("Explorer", this);
+    header->setStyleSheet("background-color: #470242; color: white; padding: 2px;");
+    header->setFixedHeight(25);
+
+    QModelIndex rootIndex = model->index(targetPath);
+
+    explorer = new QTreeView();
+    explorer->setModel(model);
+    explorer->setRootIndex(rootIndex);
+    explorer->header()->hide();
+    explorer->hideColumn(1);
+    explorer->hideColumn(2);
+    explorer->hideColumn(3);
+
+    fileSysLayout = new QVBoxLayout;
+    fileSysLayout->addWidget(header);
+    fileSysLayout->addWidget(explorer);
+
+    leftWidget = new QWidget;
+    leftWidget->setLayout(fileSysLayout);
+
+    tabs = new QTabWidget();
+    tabs->setTabsClosable(true);
+    tabs->setMovable(true);
+
+    splitter = new QSplitter(Qt::Horizontal, this);
+    splitter->addWidget(leftWidget);
+    splitter->addWidget(tabs);
+    splitter->setStretchFactor(1, 1);
+
+    splitter->setSizes(QList<int>() << 200 << 800);
+    
+    layout = new QHBoxLayout;
+    layout->setContentsMargins(5, 5, 5, 5);
+    layout->addWidget(splitter);
+
+    centralWidget->setLayout(layout);
 }
