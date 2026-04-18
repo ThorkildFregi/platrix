@@ -31,8 +31,10 @@ protected:
 
 private slots:
     void newFile();
+    void newFolder();
     void open();
     void save();
+    void rename();
     void undo();
     void redo();
     void cut();
@@ -67,8 +69,10 @@ private:
     QMenu *helpMenu;
 
     QAction *newAct;
+    QAction *newFAct;
     QAction *openAct;
     QAction *saveAct;
+    QAction *renameAct;
     QAction *undoAct;
     QAction *redoAct;
     QAction *cutAct;

@@ -34,6 +34,43 @@ void MainWindow::newFile()
 
 }
 
+void MainWindow::newFolder()
+{
+    QModelIndex currentIndex = explorer->currentIndex();
+    QString parentPath;
+
+    if (currentIndex.isValid()) {
+        if (model->isDir(currentIndex)) {
+            parentPath = model->filePath(currentIndex);
+        } else {
+            parentPath = model->fileInfo(currentIndex).absolutePath();
+        }
+    } else {
+        parentPath = model->rootPath();
+    }
+
+    QDir dir(parentPath);
+    QString folderName = "new_folder";
+    if (dir.exists(folderName)) {
+        int i = 1;
+        while (dir.exists(QString("New Folder (%1)").arg(i))) {
+            i++;
+        }
+        folderName = QString("New Folder (%1)").arg(i);
+    }
+
+    if (dir.mkdir(folderName)) {
+        QString newFolderPath = dir.absoluteFilePath(folderName);
+        QModelIndex newIndex = model->index(newFolderPath);
+
+        if (newIndex.isValid()) {
+            explorer->scrollTo(newIndex);
+            explorer->setCurrentIndex(newIndex);
+            explorer->edit(newIndex);
+        }
+    }
+}
+
 void MainWindow::open()
 {
 }
@@ -59,6 +96,14 @@ void MainWindow::save()
 
             file.close();
         }
+    }
+}
+
+void MainWindow::rename()
+{
+    QModelIndex currentIndex = explorer->currentIndex();
+    if (currentIndex.isValid()) {
+        explorer->edit(currentIndex);
     }
 }
 
@@ -90,12 +135,17 @@ void MainWindow::about()
 
 void MainWindow::createActions()
 {
-    newAct = new QAction(QIcon::fromTheme(QIcon::ThemeIcon::DocumentNew), "&New", this);
-
+    newAct = new QAction(QIcon::fromTheme(QIcon::ThemeIcon::DocumentNew), "&New File", this);
     newAct->setShortcuts(QKeySequence::New);
     newAct->setStatusTip("Create a new file");
 
     connect(newAct, &QAction::triggered, this, &MainWindow::newFile);
+
+
+    newFAct = new QAction("&New Folder", this);
+    newFAct->setStatusTip("Create a new folder");
+
+    connect(newFAct, &QAction::triggered, this, &MainWindow::newFolder);
 
 
     openAct = new QAction(QIcon::fromTheme(QIcon::ThemeIcon::DocumentOpen), "&Open...", this);
@@ -107,9 +157,34 @@ void MainWindow::createActions()
 
     saveAct = new QAction(QIcon::fromTheme(QIcon::ThemeIcon::DocumentSave), "&Save", this);
     saveAct->setShortcuts(QKeySequence::Save);
-    saveAct->setStatusTip("Save the document to disk");
+    saveAct->setStatusTip("Save the file to disk");
 
     connect(saveAct, &QAction::triggered, this, &MainWindow::save);
+
+
+    renameAct = new QAction("&Rename", this);
+    renameAct->setShortcut(QKeySequence(Qt::Key_F2));
+
+    connect(renameAct, &QAction::triggered, this, &MainWindow::rename);
+
+    explorer->addAction(renameAct);
+
+
+    connect(model, &QFileSystemModel::fileRenamed, this, [this](const QString &path, const QString &oldName, const QString &newName) {
+        QString oldPath = QDir(path).filePath(oldName);
+        QString newPath = QDir(path).filePath(newName);
+
+        if (openedFiles.contains(oldPath)) {
+            int key = openedFiles.value(oldPath);
+
+            openedFiles.remove(oldPath);
+            openedFiles.insert(newPath, key);
+
+            tabs->setTabText(key, newName);
+
+            statusBar()->showMessage("Index updated : " + newName, 5000);
+        }
+    });
 
 
     undoAct = new QAction(QIcon::fromTheme(QIcon::ThemeIcon::EditUndo), "&Undo", this);
@@ -152,6 +227,7 @@ void MainWindow::createActions()
 
     connect(aboutAct, &QAction::triggered, this, &MainWindow::about);
 
+
     connect(tabs, &QTabWidget::tabCloseRequested, [this](int index) {
         QWidget *w = tabs->widget(index);
 
@@ -162,11 +238,36 @@ void MainWindow::createActions()
         delete w;
     });
 
+
+    connect(explorer, &QTreeView::customContextMenuRequested, this, [this](const QPoint &pos) {
+        QModelIndex index = explorer->indexAt(pos);
+
+        QMenu *menu = new QMenu();
+
+        menu->addAction(newAct);
+        menu->addAction(newFAct);
+        menu->addSeparator();
+
+        if (index.isValid()) {
+            menu->addAction(renameAct);
+            menu->addSeparator();
+            menu->addAction(cutAct);
+            menu->addAction(copyAct);
+            menu->addAction(pasteAct);
+        } else {
+            explorer->clearSelection();
+            explorer->setCurrentIndex(QModelIndex());
+        }
+
+        menu->exec(explorer->viewport()->mapToGlobal(pos));
+    });
+    
+
     connect(explorer, &QTreeView::doubleClicked, [this](const QModelIndex &index) {
         QString filePath = model->filePath(index);
         QFileInfo info(filePath);
 
-        if (info.isFile() && info.suffix() == "pax") {
+        if (info.isFile()) {
             if (openedFiles.contains(filePath)) {
                 tabs->setCurrentIndex(openedFiles.value(filePath));
                 return;
@@ -194,12 +295,17 @@ void MainWindow::createMenus()
 {
     fileMenu = menuBar()->addMenu("&File");
     fileMenu->addAction(newAct);
+    fileMenu->addAction(newFAct);
+    fileMenu->addSeparator();
     fileMenu->addAction(openAct);
+    fileMenu->addSeparator();
     fileMenu->addAction(saveAct);
     
     editMenu = menuBar()->addMenu("&Edit");
     editMenu->addAction(undoAct);
     editMenu->addAction(redoAct);
+    editMenu->addSeparator();
+    editMenu->addAction(renameAct);
     editMenu->addSeparator();
     editMenu->addAction(cutAct);
     editMenu->addAction(copyAct);
@@ -223,6 +329,7 @@ void MainWindow::createTextEditor()
 
     model = new QFileSystemModel;
     model->setRootPath(targetPath);
+    model->setReadOnly(false);
 
     header = new QLabel("Explorer", this);
     header->setStyleSheet("background-color: #470242; color: white; padding: 2px;");
@@ -237,6 +344,8 @@ void MainWindow::createTextEditor()
     explorer->hideColumn(1);
     explorer->hideColumn(2);
     explorer->hideColumn(3);
+    explorer->setContextMenuPolicy(Qt::CustomContextMenu);
+    explorer->setEditTriggers(QAbstractItemView::NoEditTriggers);
 
     fileSysLayout = new QVBoxLayout;
     fileSysLayout->addWidget(header);
