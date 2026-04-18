@@ -7,22 +7,46 @@ MainWindow::MainWindow()
     QWidget *widget = new QWidget;
     setCentralWidget(widget);
 
-    QWidget *topFiller = new QWidget; 
-    topFiller->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
+    QString path = QCoreApplication::applicationDirPath();
 
-    QWidget *bottomFiller = new QWidget;
-    bottomFiller->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
+    QFileSystemModel *model = new QFileSystemModel;
+    model->setRootPath(path);
+
+    QLabel *customHeader = new QLabel("Explorer", this);
+    customHeader->setStyleSheet("background-color: #470242; color: white; padding: 2px;");
+    customHeader->setFixedHeight(25);
+
+    QModelIndex rootIndex = model->index(path);
+
+    QTreeView *tree = new QTreeView();
+    tree->setModel(model);
+    tree->setRootIndex(rootIndex);
+    tree->header()->hide();
+    tree->hideColumn(1);
+    tree->hideColumn(2);
+    tree->hideColumn(3);
 
     infoLabel = new QLabel("<i>Choose a menu option, or right-click to invoke a context menu !</i>");
 
     infoLabel->setFrameStyle(QFrame::StyledPanel | QFrame::Sunken);
     infoLabel->setAlignment(Qt::AlignCenter);
 
-    QVBoxLayout *layout = new QVBoxLayout;
+    QVBoxLayout *fileSysLayout = new QVBoxLayout;
+    fileSysLayout->addWidget(customHeader);
+    fileSysLayout->addWidget(tree);
+
+    QWidget *leftSideWidget = new QWidget;
+    leftSideWidget->setLayout(fileSysLayout);
+
+    QSplitter *splitter = new QSplitter(Qt::Horizontal, this);
+    splitter->addWidget(leftSideWidget);
+    splitter->addWidget(infoLabel);
+
+    splitter->setSizes(QList<int>() << 200 << 600);
+    
+    QHBoxLayout *layout = new QHBoxLayout;
     layout->setContentsMargins(5, 5, 5, 5);
-    layout->addWidget(topFiller);
-    layout->addWidget(infoLabel);
-    layout->addWidget(bottomFiller);
+    layout->addWidget(splitter);
 
     widget->setLayout(layout);
 
@@ -34,7 +58,7 @@ MainWindow::MainWindow()
 
     setWindowTitle("Platrix");
     setMinimumSize(160, 160);
-    resize(480, 320);
+    resize(800, 600);
 }
 
 #ifndef QT_NO_CONTEXTMENU
@@ -179,4 +203,6 @@ void MainWindow::createMenus()
 
     helpMenu = menuBar()->addMenu("&Help");
     helpMenu->addAction(aboutAct);
+
+
 }
