@@ -29,7 +29,6 @@ void MainWindow::contextMenuEvent(QContextMenuEvent *event)
 }
 #endif
 
-// Slot actions
 void MainWindow::newFile()
 {
 
@@ -167,7 +166,7 @@ void MainWindow::createActions()
         QString filePath = model->filePath(index);
         QFileInfo info(filePath);
 
-        if (info.isFile()) {
+        if (info.isFile() && info.suffix() == "pax") {
             if (openedFiles.contains(filePath)) {
                 tabs->setCurrentIndex(openedFiles.value(filePath));
                 return;
