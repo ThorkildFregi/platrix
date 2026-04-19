@@ -100,7 +100,7 @@ jobs:
           [Desktop Entry]
           Type=Application
           Name=Platrix
-          Exec=$FULL_BINARY_PATH
+          Exec=platrix
           Icon=platrix
           Categories=Utility;
           EOF
