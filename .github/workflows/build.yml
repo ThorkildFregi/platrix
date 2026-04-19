@@ -63,13 +63,17 @@ jobs:
         if: matrix.os == 'windows-latest'
         shell: pwsh
         run: |
-          cmake -B build -DCMAKE_BUILD_TYPE=Release -DCMAKE_PREFIX_PATH="${{ steps.qt.outputs.qt_dir }}"
+          $QT_DIR = "${{ github.workspace }}/Qt/6.8.3/msvc2022_64"
+          cmake -B build -DCMAKE_BUILD_TYPE=Release -DCMAKE_PREFIX_PATH="$QT_DIR"
+          
           cmake --build build --config Release
+          
           $EXE = Get-ChildItem -Path build -Filter "platrix.exe" -Recurse | Select-Object -First 1
-          cd $EXE.DirectoryName
-          windeployqt --release --no-translations platrix.exe
-          cd ../..
-          Compress-Archive -Path "$($EXE.DirectoryName)/*" -DestinationPath "platrix-${{ github.ref_name }}-windows.zip"*
+          $BIN_DIR = $EXE.DirectoryName
+          
+          & "$QT_DIR/bin/windeployqt.exe" --release --no-translations "$($EXE.FullName)"
+          
+          Compress-Archive -Path "$BIN_DIR/*" -DestinationPath "platrix-${{ github.ref_name }}-windows.zip"
 
       - name: Build & Package macOS
         if: matrix.os == 'macos-latest'
@@ -110,7 +114,7 @@ jobs:
             --plugin qt \
             --output appimage
           
-          mv *.AppImage platrix-${{ github.ref_name }}-linux.AppImage
+          mv *.AppImage "platrix-${{ github.ref_name }}-linux.AppImage"
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v1
