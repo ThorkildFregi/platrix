@@ -63,7 +63,7 @@ jobs:
         if: matrix.os == 'windows-latest'
         shell: pwsh
         run: |
-          $QT_DIR = "${{ github.workspace }}/Qt/6.8.3/msvc2022_64"
+          $QT_DIR = "D:aplatrixplatrix\Qt\6.8.3\msvc2022_64"
           cmake -B build -DCMAKE_BUILD_TYPE=Release -DCMAKE_PREFIX_PATH="$QT_DIR"
           
           cmake --build build --config Release
@@ -114,7 +114,7 @@ jobs:
             --plugin qt \
             --output appimage
           
-          mv *.AppImage "platrix-${{ github.ref_name }}-linux.AppImage"
+          mv Platrix-*.AppImage "platrix-${{ github.ref_name }}-linux.AppImage"
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v1
