@@ -105,7 +105,7 @@ jobs:
           chmod +x linuxdeployqt-continuous-x86_64.AppImage
           export PATH="${{ steps.qt.outputs.qt_dir }}/bin:$PATH"
           export VERSION=${{ github.ref_name }}
-          ./linuxdeployqt-continuous-x86_64.AppImage "$BINARY_PATH" -appimage -unsupported-allow-new-glibc -desktop-file=platrix.desktop
+          ./linuxdeployqt-continuous-x86_64.AppImage "$BINARY_PATH" -appimage -unsupported-allow-new-glibc 
           mv *.AppImage platrix-${{ github.ref_name }}-linux.AppImage
 
       - name: Create GitHub Release
