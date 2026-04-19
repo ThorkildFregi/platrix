@@ -1,0 +1,101 @@
+name: Release App
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  build:
+    name: Build on ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [windows-latest, macos-latest, ubuntu-latest]
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install aqtinstall
+        run: |
+          python -m pip install --upgrade pip
+          pip install "aqtinstall==3.3.*"
+
+      - name: Install Qt
+        id: qt
+        shell: bash
+        run: |
+          if [ "${{ matrix.os }}" = "windows-latest" ]; then
+            ARCH="win64_msvc2022_64"
+            HOST="windows"
+          elif [ "${{ matrix.os }}" = "macos-latest" ]; then
+            ARCH="clang_64"
+            HOST="mac"
+          else
+            ARCH="linux_gcc_64"
+            HOST="linux"
+          fi
+          
+          python -m aqt install-qt $HOST desktop 6.8.3 $ARCH \
+            --outputdir ${{ github.workspace }}/Qt
+          
+          QT_ROOT=$(find ${{ github.workspace }}/Qt/6.8.3 -maxdepth 2 -name "bin" -type d | head -n 1 | xargs dirname)
+          
+          echo "qt_dir=$QT_ROOT" >> $GITHUB_OUTPUT
+          echo "$QT_ROOT/bin" >> $GITHUB_PATH
+
+      - name: Build & Package Windows
+        if: matrix.os == 'windows-latest'
+        shell: pwsh
+        run: |
+          cmake -B build -DCMAKE_BUILD_TYPE=Release -DCMAKE_PREFIX_PATH="${{ steps.qt.outputs.qt_dir }}"
+          cmake --build build --config Release
+          $EXE = Get-ChildItem -Path build -Filter "platrix.exe" -Recurse | Select-Object -First 1
+          cd $EXE.DirectoryName
+          windeployqt --release --no-translations platrix.exe
+          cd ../..
+          Compress-Archive -Path "$($EXE.DirectoryName)/*" -DestinationPath "platrix-${{ github.ref_name }}-windows.zip"*
+
+      - name: Build & Package macOS
+        if: matrix.os == 'macos-latest'
+        run: |
+          cmake -B build -DCMAKE_BUILD_TYPE=Release -DCMAKE_PREFIX_PATH="${{ steps.qt.outputs.qt_dir }}"
+          cmake --build build --config Release
+          
+          APP_PATH=$(find build -name "*.app" -type d | head -n 1)
+          echo "App bundle trouvé ici : $APP_PATH"
+          
+          macdeployqt "$APP_PATH" -dmg
+          
+          DMG_PATH=$(find build -name "*.dmg" | head -n 1)
+          mv "$DMG_PATH" platrix-${{ github.ref_name }}-macos.dmg
+
+      - name: Build & Package Linux (AppImage)
+        if: matrix.os == 'ubuntu-latest'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libgl1-mesa-dev libxkbcommon-x11-0 libxcb-cursor0 \
+                                libxcb-icccm4 libxcb-image0 libxcb-keysyms1 \
+                                libxcb-render-util0 libxcb-xinerama0 libxcb-xinput0 \
+                                libxcb-shape0 libfuse2
+          cmake -B build -DCMAKE_BUILD_TYPE=Release -DCMAKE_PREFIX_PATH="${{ steps.qt.outputs.qt_dir }}"
+          cmake --build build --config Release
+          wget -c https://github.com/probonopd/linuxdeployqt/releases/download/continuous/linuxdeployqt-continuous-x86_64.AppImage
+          chmod +x linuxdeployqt-continuous-x86_64.AppImage
+          unset QTDIR; unset QT_PLUGIN_PATH; unset LD_LIBRARY_PATH
+          # Note: Assure-toi d'avoir un fichier platrix.desktop à la racine
+          ./linuxdeployqt-continuous-x86_64.AppImage build/platrix -appimage -unsupported-allow-new-glibc
+          mv platrix-x86_64.AppImage platrix-${{ github.ref_name }}-linux.AppImage
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v1
+        with:
+          files: platrix-*
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

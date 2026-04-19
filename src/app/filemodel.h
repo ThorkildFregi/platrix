@@ -5,13 +5,22 @@ public:
     using QFileSystemModel::QFileSystemModel;
 
     Qt::ItemFlags flags(const QModelIndexList &selected) const {
-        for (const QModelIndex &index : selected) {
-            Qt::ItemFlags defaultFlags = QFileSystemModel::flags(index);
-            if (index.isValid()) {
-                return defaultFlags | Qt::ItemIsDragEnabled | Qt::ItemIsDropEnabled;
-            }
-            return defaultFlags | Qt::ItemIsDropEnabled;
+        Qt::ItemFlags combinedFlags = Qt::NoItemFlags;
+
+        if (selected.isEmpty()) {
+            return QFileSystemModel::flags(QModelIndex());
         }
+
+        for (const QModelIndex &index : selected) {
+            Qt::ItemFlags f = QFileSystemModel::flags(index);
+            if (index.isValid()) {
+                combinedFlags |= (f | Qt::ItemIsDragEnabled | Qt::ItemIsDropEnabled);
+            } else {
+                combinedFlags |= (f | Qt::ItemIsDropEnabled);
+            }
+        }
+
+        return combinedFlags;
     }
 
     Qt::DropActions supportedDropActions() const override {
