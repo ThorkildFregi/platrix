@@ -1,6 +1,7 @@
 #include <QtWidgets>
 
 #include "mainwindow.h"
+#include "filemodel.h"
 
 MainWindow::MainWindow()
 {   
@@ -180,27 +181,33 @@ void MainWindow::save()
 
 void MainWindow::deleteF()
 {
-    QModelIndex currentIndex = explorer->currentIndex();
-    if (!currentIndex.isValid()) return;
+    QModelIndexList selected = explorer->selectionModel()->selectedRows();
+    if (selected.isEmpty()) return;
     
-    QString path = model->filePath(currentIndex);
-    QDir dir(path);
-    QFile file(path);
+    QStringList paths;
+    for (const QModelIndex &index : selected) {
+        paths << model->filePath(index);
+    }
 
-    if (dir.exists()) {
-        dir.removeRecursively();
-    } 
-    else if (file.exists()) {
-        if (openedFiles.contains(path)){
-            int key = openedFiles.value(path);
+    for (const QString &path : paths) {
+        QDir dir(path);
+        QFile file(path);
 
-            tabs->removeTab(key);
+        if (dir.exists()) {
+            dir.removeRecursively();
+        } 
+        else if (file.exists()) {
+            if (openedFiles.contains(path)){
+                int key = openedFiles.value(path);
+
+                tabs->removeTab(key);
+            }
+
+            file.remove();
+        } 
+        else {
+            QMessageBox::critical(this, "Error", "File/Folder can't be found !");
         }
-
-        file.remove();
-    } 
-    else {
-        QMessageBox::critical(this, "Error", "File/Folder can't be found !");
     }
 }
 
@@ -227,69 +234,73 @@ void MainWindow::cut()
     QDir dir(cutCachePath);
     if (!dir.exists()) {dir.mkpath(".");}
 
-    QModelIndex currentIndex = explorer->currentIndex();
-    if (!currentIndex.isValid()) return;
-
-    QString path = model->filePath(currentIndex);
-
-    QString fileName = QFileInfo(path).fileName();
-    QString destPath = QDir(cutCachePath).filePath(fileName);
-
-    if (openedFiles.contains(path)){
-        int key = openedFiles.value(path);
-
-        tabs->removeTab(key);
-    }
-
+    QModelIndexList selected = explorer->selectionModel()->selectedRows();
+    if (selected.isEmpty()) return;
+    
     foreach (QString fName, dir.entryList(QDir::Files)) {
-        if (QDir(cutCachePath).filePath(fName) == destPath) {
-            QSettings settings;
-            settings.setValue("clipboard_path", destPath);
-            settings.setValue("clipboard_is_dir", model->isDir(currentIndex));
-            
-            model->remove(currentIndex);
+        QFile file(QDir(cutCachePath).filePath(fName));
+        file.remove();
+    }
 
-            statusBar()->showMessage("Cut: " + path, 2000);
-            QApplication::clipboard()->setText(path);
-            return;
+    QStringList paths;
+    QList<bool> is_dirs;
+    for (const QModelIndex &index : selected) {
+        paths << model->filePath(index);
+        is_dirs << model->isDir(index);
+    }
+    
+    QStringList destPaths;
+    for (const QString &path : paths) {
+        QString fileName = QFileInfo(path).fileName();
+        QString destPath = QDir(cutCachePath).filePath(fileName);
+
+        if (openedFiles.contains(path)){
+            int key = openedFiles.value(path);
+
+            tabs->removeTab(key);
         }
-        dir.rmpath(QDir(cutCachePath).filePath(fName));
+
+        if (QFile::rename(path, destPath)) {
+            destPaths << destPath;
+            
+        } else {
+            QMessageBox::critical(this, "Error", "Could not cut file !");
+        }
     }
 
-    if (QFile::rename(path, destPath)) {
-        QSettings settings;
-        settings.setValue("clipboard_path", destPath);
-        settings.setValue("clipboard_is_dir", model->isDir(currentIndex));
+    QSettings settings;
+    settings.setValue("clipboard_paths", destPaths);
+    settings.setValue("clipboard_is_dirs", QVariant::fromValue(is_dirs));
 
-        statusBar()->showMessage("Cut: " + path, 2000);
-        QApplication::clipboard()->setText(path);
-    } else {
-        QMessageBox::critical(this, "Error", "Could not cut file !");
-    }
+    statusBar()->showMessage("Cut", 2000);
 }
 
 void MainWindow::copy()
 {
-    QModelIndex currentIndex = explorer->currentIndex();
-    if (!currentIndex.isValid()) return;
+    QModelIndexList selected = explorer->selectionModel()->selectedRows();
+    if (selected.isEmpty()) return;
 
-    QString path = model->filePath(currentIndex);
+    QStringList paths;
+    QList<bool> is_dirs;
+    for (const QModelIndex &index : selected) {
+        paths << model->filePath(index);
+        is_dirs << model->isDir(index);
+    }
     
     QSettings settings;
-    settings.setValue("clipboard_path", path);
-    settings.setValue("clipboard_is_dir", model->isDir(currentIndex));
+    settings.setValue("clipboard_paths", paths);
+    settings.setValue("clipboard_is_dirs", QVariant::fromValue(is_dirs));
     
-    statusBar()->showMessage("Copied: " + path, 2000);
-    QApplication::clipboard()->setText(path);
+    statusBar()->showMessage("Copied", 2000);
 }
 
 void MainWindow::paste()
 {
     QSettings settings;
-    QString sourcePath = settings.value("clipboard_path").toString();
-    bool isDir = settings.value("clipboard_is_dir").toBool(); 
+    QStringList sourcePaths = settings.value("clipboard_paths").toStringList();
+    QList<bool> isDirs = settings.value("clipboard_is_dirs").value<QList<bool>>(); 
 
-    if (sourcePath.isEmpty()) return;
+    if (sourcePaths.isEmpty()) return;
 
     QModelIndex currentIndex = explorer->currentIndex();
     QString destDir;
@@ -300,25 +311,27 @@ void MainWindow::paste()
         destDir = model->rootPath();
     }
 
-    QFileInfo sourceInfo(sourcePath);
-    QString destPath = QDir(destDir).filePath(sourceInfo.fileName());
-    
-    int i = 1;
-    while (QFile::exists(destPath)) {
-        destPath = QDir(destDir).filePath(QString("%1_copy%2.%3").arg(sourceInfo.baseName()).arg(i++).arg(sourceInfo.suffix()));
-    }
-
-    if (!isDir) {
-        if (QFile::copy(sourcePath, destPath)) {
-            statusBar()->showMessage("Pasted: " + destPath, 2000);
-        } else {
-            QMessageBox::critical(this, "Error", "Could not paste file !");
+    for (int i = 0; i < sourcePaths.size(); i++) {
+        QFileInfo sourceInfo(sourcePaths.at(i));
+        QString destPath = QDir(destDir).filePath(sourceInfo.fileName());
+        
+        int j = 1;
+        while (QFile::exists(destPath)) {
+            destPath = QDir(destDir).filePath(QString("%1_copy%2.%3").arg(sourceInfo.baseName()).arg(j++).arg(sourceInfo.suffix()));
         }
-    } else {
-        if (copyRecursively(sourcePath, destPath)) {
-            statusBar()->showMessage("Pasted folder: " + destPath, 2000);
+
+        if (!isDirs.at(i)) {
+            if (QFile::copy(sourcePaths.at(i), destPath)) {
+                statusBar()->showMessage("Pasted: " + destPath, 2000);
+            } else {
+                QMessageBox::critical(this, "Error", "Could not paste file !");
+            }
         } else {
-            QMessageBox::critical(this, "Error", "Could not paste folder !");
+            if (copyRecursively(sourcePaths.at(i), destPath)) {
+                statusBar()->showMessage("Pasted folder: " + destPath, 2000);
+            } else {
+                QMessageBox::critical(this, "Error", "Could not paste folder !");
+            }
         }
     }
 }
@@ -542,7 +555,7 @@ void MainWindow::createTextEditor()
 
     QString targetPath = dir.absolutePath();
 
-    model = new QFileSystemModel;
+    model = new FileModel;
     model->setRootPath(targetPath);
     model->setReadOnly(false);
 
@@ -562,6 +575,12 @@ void MainWindow::createTextEditor()
     explorer->setContextMenuPolicy(Qt::CustomContextMenu);
     explorer->setEditTriggers(QAbstractItemView::NoEditTriggers);
     explorer->viewport()->installEventFilter(this);
+    explorer->setDragEnabled(true);
+    explorer->setAcceptDrops(true);
+    explorer->setDropIndicatorShown(true);
+    explorer->setDragDropMode(QAbstractItemView::InternalMove);
+    explorer->setDefaultDropAction(Qt::MoveAction);
+    explorer->setSelectionMode(QAbstractItemView::ExtendedSelection);
 
     fileSysLayout = new QVBoxLayout;
     fileSysLayout->addWidget(header);

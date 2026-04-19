@@ -9,6 +9,7 @@ class QMenu;
 class QWidget;
 class QFileSystemModel;
 class QTreeView;
+class FileModel;
 class QTabWidget;
 class QString;
 class QSplitter;
@@ -54,7 +55,7 @@ private:
     QWidget *leftWidget;
     QWidget *rightWidget;
 
-    QFileSystemModel *model;
+    FileModel *model;
 
     QLabel *header;
     QTreeView *explorer;
