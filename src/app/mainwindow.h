@@ -39,8 +39,6 @@ private slots:
     void save();
     void deleteF();
     void rename();
-    void undo();
-    void redo();
     void cut();
     void copy();
     void paste();
@@ -78,8 +76,6 @@ private:
     QAction *saveAct;
     QAction *deleteAct;
     QAction *renameAct;
-    QAction *undoAct;
-    QAction *redoAct;
     QAction *cutAct;
     QAction *copyAct;
     QAction *pasteAct;

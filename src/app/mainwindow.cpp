@@ -219,14 +219,6 @@ void MainWindow::rename()
     }
 }
 
-void MainWindow::undo()
-{
-}
-
-void MainWindow::redo()
-{
-}
-
 void MainWindow::cut()
 {
     QString cutCachePath = QStandardPaths::writableLocation(QStandardPaths::AppLocalDataLocation) + "/cache/cut/"; 
@@ -403,20 +395,6 @@ void MainWindow::createActions()
     });
 
 
-    undoAct = new QAction(QIcon::fromTheme(QIcon::ThemeIcon::EditUndo), "&Undo", this);
-    undoAct->setShortcuts(QKeySequence::Undo);
-    undoAct->setStatusTip("Undo the last operation");
-
-    connect(undoAct, &QAction::triggered, this, &MainWindow::undo);
-
-
-    redoAct = new QAction(QIcon::fromTheme(QIcon::ThemeIcon::EditRedo), "&Redo", this);
-    redoAct->setShortcuts(QKeySequence::Redo);
-    redoAct->setStatusTip("Redo the last operation");
-
-    connect(redoAct, &QAction::triggered, this, &MainWindow::redo);
-
-
     cutAct = new QAction(QIcon::fromTheme(QIcon::ThemeIcon::EditCut), "Cu&t", this);
     cutAct->setShortcuts(QKeySequence::Cut);
     cutAct->setStatusTip("Cut the current selection's contents to the clipboard");
@@ -521,9 +499,6 @@ void MainWindow::createMenus()
     
     editMenu = menuBar()->addMenu("&Edit");
     editMenu->addAction(deleteAct);
-    editMenu->addSeparator();
-    editMenu->addAction(undoAct);
-    editMenu->addAction(redoAct);
     editMenu->addSeparator();
     editMenu->addAction(renameAct);
     editMenu->addSeparator();
