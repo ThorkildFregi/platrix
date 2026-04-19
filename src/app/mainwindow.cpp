@@ -109,6 +109,15 @@ void MainWindow::newFolder()
 
 void MainWindow::open()
 {
+    QString dirPath = QFileDialog::getExistingDirectory(this, "Choose a folder", QDir::homePath(), QFileDialog::ShowDirsOnly | QFileDialog::DontResolveSymlinks);
+
+    model->setRootPath(dirPath);
+    explorer->setRootIndex(model->index(dirPath));
+
+    QSettings settings;
+    settings.setValue("rootPath", dirPath);
+
+    statusBar()->showMessage("Folder opened : " + dirPath, 5000);
 }
 
 void MainWindow::save()
@@ -192,7 +201,7 @@ void MainWindow::paste()
 
 void MainWindow::about()
 {
-    QMessageBox::about(this, "About Menu", "The <b>Menu</b> example shows how to create menu-bar menus and context menus.");
+    QMessageBox::about(this, "About Platrix", "<b>Platrix</b> is a programming langage specialized in math operations and statistics. \n <a href='https://github.com/ThorkildFregi/platrix/tree/main'>GitHub<a>");
 }
 
 void MainWindow::createActions()
@@ -210,9 +219,9 @@ void MainWindow::createActions()
     connect(newFAct, &QAction::triggered, this, &MainWindow::newFolder);
 
 
-    openAct = new QAction(QIcon::fromTheme(QIcon::ThemeIcon::DocumentOpen), "&Open...", this);
+    openAct = new QAction(QIcon::fromTheme(QIcon::ThemeIcon::DocumentOpen), "&Open Folder...", this);
     openAct->setShortcuts(QKeySequence::Open);
-    openAct->setStatusTip("Open an existing file");
+    openAct->setStatusTip("Open an existing folder");
 
     connect(openAct, &QAction::triggered, this, &MainWindow::open);
 
@@ -394,8 +403,16 @@ void MainWindow::createTextEditor()
     centralWidget = new QWidget;
     setCentralWidget(centralWidget);
 
-    QString appDataPath = QStandardPaths::writableLocation(QStandardPaths::AppLocalDataLocation);
-    QDir dir(appDataPath);
+    QSettings settings;
+    QString rootPath;
+    if (settings.value("rootPath").toString() == "") {
+        rootPath = QStandardPaths::writableLocation(QStandardPaths::AppLocalDataLocation) + "/defaultFolderSystem/";
+    }
+    else {
+        rootPath = settings.value("rootPath").toString();
+    }
+    
+    QDir dir(rootPath);
 
     if (!dir.exists()) {dir.mkpath(".");}
 
