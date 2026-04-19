@@ -48,8 +48,7 @@ jobs:
             --outputdir ${{ github.workspace }}/Qt
 
           if [ "${{ matrix.os }}" = "windows-latest" ]; then
-            # Sur Windows, aqt installe dans msvc2022_64 (sans le prefixe win64_)
-            QT_ROOT="${{ github.workspace }}/Qt/6.8.3/msvc2022_64"
+            QT_ROOT="${{ github.workspace }}\Qt\6.8.3\msvc2022_64"
           elif [ "${{ matrix.os }}" = "macos-latest" ]; then
             QT_ROOT="${{ github.workspace }}/Qt/6.8.3/macos"
           else
