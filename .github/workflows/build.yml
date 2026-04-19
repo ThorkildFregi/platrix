@@ -1,0 +1,131 @@
+name: Release App
+on:
+  push:
+    tags:
+      - 'v*'
+permissions:
+  contents: write
+
+jobs:
+  build:
+    name: Build on ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [windows-latest, macos-latest, ubuntu-latest]
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install aqtinstall
+        run: |
+          python -m pip install --upgrade pip
+          pip install "aqtinstall==3.3.*"
+
+      - name: Install Qt
+        id: qt
+        shell: bash
+        run: |
+          if [ "${{ matrix.os }}" = "windows-latest" ]; then
+            ARCH="win64_msvc2022_64"
+            HOST="windows"
+          elif [ "${{ matrix.os }}" = "macos-latest" ]; then
+            ARCH="clang_64"
+            HOST="mac"
+          else
+            ARCH="linux_gcc_64"
+            HOST="linux"
+          fi
+          
+          python -m aqt install-qt $HOST desktop 6.8.3 $ARCH \
+            --outputdir ${{ github.workspace }}/Qt
+
+          if [ "${{ matrix.os }}" = "windows-latest" ]; then
+            # Sur Windows, aqt installe dans msvc2022_64 (sans le prefixe win64_)
+            QT_ROOT="${{ github.workspace }}/Qt/6.8.3/msvc2022_64"
+          elif [ "${{ matrix.os }}" = "macos-latest" ]; then
+            QT_ROOT="${{ github.workspace }}/Qt/6.8.3/macos"
+          else
+            QT_ROOT=$(find ${{ github.workspace }}/Qt/6.8.3 -maxdepth 2 -name "bin" -type d | head -n 1 | xargs dirname)
+          fi
+          
+          echo "qt_dir=$QT_ROOT" >> $GITHUB_OUTPUT
+          echo "$QT_ROOT/bin" >> $GITHUB_PATH
+
+      - name: Setup MSVC
+        if: matrix.os == 'windows-latest'
+        uses: ilammy/msvc-dev-cmd@v1
+
+      - name: Build & Package Windows
+        if: matrix.os == 'windows-latest'
+        shell: pwsh
+        run: |
+          $QT_PATH = "D:aplatrixplatrix\Qt\6.8.3\msvc2022_64"
+          $env:PATH = "$QT_PATH/bin;" + $env:PATH
+          
+          cmake -B build -DCMAKE_BUILD_TYPE=Release -DCMAKE_PREFIX_PATH="$QT_PATH"
+          
+          cmake --build build --config Release
+          
+          $EXE = Get-ChildItem -Path build -Filter "platrix.exe" -Recurse | Select-Object -First 1
+          
+          if ($null -eq $EXE) { throw "Binaire platrix.exe introuvable !" }
+          
+          & "$QT_PATH/bin/windeployqt.exe" --release --no-translations "$($EXE.FullName)"
+          
+          Compress-Archive -Path "$($EXE.DirectoryName)/*" -DestinationPath "platrix-${{ github.ref_name }}-windows.zip"
+
+      - name: Build & Package macOS
+        if: matrix.os == 'macos-latest'
+        run: |
+          cmake -B build -DCMAKE_BUILD_TYPE=Release -DCMAKE_PREFIX_PATH="${{ steps.qt.outputs.qt_dir }}"
+          cmake --build build --config Release
+          
+          APP_PATH=$(find build -name "*.app" -type d | head -n 1)
+          echo "App bundle trouvé ici : $APP_PATH"
+          
+          macdeployqt "$APP_PATH" -dmg
+          
+          DMG_PATH=$(find build -name "*.dmg" | head -n 1)
+          mv "$DMG_PATH" platrix-${{ github.ref_name }}-macos.dmg
+
+      - name: Build & Package Linux (AppImage)
+        if: matrix.os == 'ubuntu-latest'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libgl1-mesa-dev libxkbcommon-x11-0 libxcb-cursor0 \
+                                libxcb-icccm4 libxcb-image0 libxcb-keysyms1 \
+                                libxcb-render-util0 libxcb-xinerama0 libxcb-xinput0 \
+                                libxcb-shape0 libfuse2
+          cmake -B build -DCMAKE_BUILD_TYPE=Release -DCMAKE_PREFIX_PATH="${{ steps.qt.outputs.qt_dir }}"
+          cmake --build build --config Release
+          
+          wget https://github.com/linuxdeploy/linuxdeploy/releases/download/continuous/linuxdeploy-x86_64.AppImage
+          wget https://github.com/linuxdeploy/linuxdeploy-plugin-qt/releases/download/continuous/linuxdeploy-plugin-qt-x86_64.AppImage
+          chmod +x linuxdeploy*.AppImage
+
+          export QMAKE="${{ steps.qt.outputs.qt_dir }}/bin/qmake"
+          export VERSION=${{ github.ref_name }}
+          
+          ./linuxdeploy-x86_64.AppImage --appdir AppDir \
+            -e $(find build -type f -executable -name "platrix" | head -n 1) \
+            -d distribution/platrix.desktop \
+            -i distribution/platrix.png \
+            --plugin qt \
+            --output appimage
+          
+          mv Platrix-*.AppImage "platrix-${{ github.ref_name }}-linux.AppImage"
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v1
+        with:
+          files: platrix-*
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
