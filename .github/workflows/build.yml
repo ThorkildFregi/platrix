@@ -110,7 +110,6 @@ jobs:
           Icon=platrix
           Categories=Utility;
           EOF
-          touch platrix.png 
 
           export QMAKE="${{ steps.qt.outputs.qt_dir }}/bin/qmake"
           export VERSION=${{ github.ref_name }}
