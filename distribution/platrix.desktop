@@ -1,0 +1,8 @@
+[Desktop Entry]
+Type=Application
+Name=Platrix
+Comment=A calculus simulation application
+Exec=platrix
+Icon=platrix
+Terminal=false
+Categories=Utility;
