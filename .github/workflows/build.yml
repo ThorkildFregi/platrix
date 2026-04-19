@@ -3,6 +3,8 @@ on:
   push:
     tags:
       - 'v*'
+permissions:
+  contents: write
 
 jobs:
   build:
@@ -45,7 +47,13 @@ jobs:
           python -m aqt install-qt $HOST desktop 6.8.3 $ARCH \
             --outputdir ${{ github.workspace }}/Qt
           
-          QT_ROOT=$(find ${{ github.workspace }}/Qt/6.8.3 -maxdepth 2 -name "bin" -type d | head -n 1 | xargs dirname)
+          if [ "${{ matrix.os }}" = "windows-latest" ]; then
+            QT_PATH="${{ github.workspace }}/Qt/6.8.3/msvc2022_64"
+          elif [ "${{ matrix.os }}" = "macos-latest" ]; then
+            QT_PATH="${{ github.workspace }}/Qt/6.8.3/macos"
+          else
+            QT_PATH="${{ github.workspace }}/Qt/6.8.3/gcc_64"
+          fi
           
           echo "qt_dir=$QT_ROOT" >> $GITHUB_OUTPUT
           echo "$QT_ROOT/bin" >> $GITHUB_PATH
