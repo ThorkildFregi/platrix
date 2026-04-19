@@ -21,13 +21,47 @@ void MainWindow::contextMenuEvent(QContextMenuEvent *event)
 {
     QMenu menu(this);
 
-    menu.addAction(cutAct);
-    menu.addAction(copyAct);
-    menu.addAction(pasteAct);
+    menu.addAction(newAct);
+    menu.addAction(newFAct);
+    menu.addSeparator();
 
     menu.exec(event->globalPos());
 }
 #endif
+
+bool MainWindow::eventFilter(QObject *obj, QEvent *event)
+{
+    if (obj == explorer->viewport() && event->type() == QEvent::MouseButtonPress) {
+        QMouseEvent *mouseEvent = static_cast<QMouseEvent *>(event);
+
+        QModelIndex index = explorer->indexAt(mouseEvent->pos());
+
+        if (!index.isValid()) {
+            explorer->clearSelection();
+            explorer->setCurrentIndex(QModelIndex());
+        }
+    }
+
+    return QMainWindow::eventFilter(obj, event);
+}
+
+bool MainWindow::copyRecursively(const QString &srcPath, const QString &dstPath)
+{
+    QDir srcDir(srcPath);
+    if (!srcDir.exists()) return false;
+
+    if (!QDir().mkpath(dstPath)) return false;
+
+    foreach (QString fileName, srcDir.entryList(QDir::Files)) {
+        QFile::copy(srcDir.filePath(fileName), QDir(dstPath).filePath(fileName));
+    }
+
+    foreach (QString dirName, srcDir.entryList(QDir::Dirs | QDir::NoDotAndDotDot)) {
+        copyRecursively(srcDir.filePath(dirName), QDir(dstPath).filePath(dirName));
+    }
+
+    return true;
+}
 
 void MainWindow::newFile()
 {
@@ -117,7 +151,7 @@ void MainWindow::open()
     QSettings settings;
     settings.setValue("rootPath", dirPath);
 
-    statusBar()->showMessage("Folder opened : " + dirPath, 5000);
+    statusBar()->showMessage("Folder opened: " + dirPath, 2000);
 }
 
 void MainWindow::save()
@@ -137,7 +171,7 @@ void MainWindow::save()
 
             out << currentEditor->toPlainText();
 
-            statusBar()->showMessage("Saved : " + filePath, 2000);
+            statusBar()->showMessage("Saved: " + filePath, 2000);
 
             file.close();
         }
@@ -188,15 +222,105 @@ void MainWindow::redo()
 
 void MainWindow::cut()
 {
+    QString cutCachePath = QStandardPaths::writableLocation(QStandardPaths::AppLocalDataLocation) + "/cache/cut/"; 
+    
+    QDir dir(cutCachePath);
+    if (!dir.exists()) {dir.mkpath(".");}
+
+    QModelIndex currentIndex = explorer->currentIndex();
+    if (!currentIndex.isValid()) return;
+
+    QString path = model->filePath(currentIndex);
+
+    QString fileName = QFileInfo(path).fileName();
+    QString destPath = QDir(cutCachePath).filePath(fileName);
+
+    if (openedFiles.contains(path)){
+        int key = openedFiles.value(path);
+
+        tabs->removeTab(key);
+    }
+
+    foreach (QString fName, dir.entryList(QDir::Files)) {
+        if (QDir(cutCachePath).filePath(fName) == destPath) {
+            QSettings settings;
+            settings.setValue("clipboard_path", destPath);
+            settings.setValue("clipboard_is_dir", model->isDir(currentIndex));
+            
+            model->remove(currentIndex);
+
+            statusBar()->showMessage("Cut: " + path, 2000);
+            QApplication::clipboard()->setText(path);
+            return;
+        }
+        dir.rmpath(QDir(cutCachePath).filePath(fName));
+    }
+
+    if (QFile::rename(path, destPath)) {
+        QSettings settings;
+        settings.setValue("clipboard_path", destPath);
+        settings.setValue("clipboard_is_dir", model->isDir(currentIndex));
+
+        statusBar()->showMessage("Cut: " + path, 2000);
+        QApplication::clipboard()->setText(path);
+    } else {
+        QMessageBox::critical(this, "Error", "Could not cut file !");
+    }
 }
 
 void MainWindow::copy()
 {
+    QModelIndex currentIndex = explorer->currentIndex();
+    if (!currentIndex.isValid()) return;
+
+    QString path = model->filePath(currentIndex);
+    
+    QSettings settings;
+    settings.setValue("clipboard_path", path);
+    settings.setValue("clipboard_is_dir", model->isDir(currentIndex));
+    
+    statusBar()->showMessage("Copied: " + path, 2000);
+    QApplication::clipboard()->setText(path);
 }
 
 void MainWindow::paste()
 {
+    QSettings settings;
+    QString sourcePath = settings.value("clipboard_path").toString();
+    bool isDir = settings.value("clipboard_is_dir").toBool(); 
 
+    if (sourcePath.isEmpty()) return;
+
+    QModelIndex currentIndex = explorer->currentIndex();
+    QString destDir;
+
+    if (currentIndex.isValid() && model->isDir(currentIndex)) {
+        destDir = model->filePath(currentIndex);
+    } else {
+        destDir = model->rootPath();
+    }
+
+    QFileInfo sourceInfo(sourcePath);
+    QString destPath = QDir(destDir).filePath(sourceInfo.fileName());
+    
+    int i = 1;
+    while (QFile::exists(destPath)) {
+        destPath = QDir(destDir).filePath(QString("%1_copy%2.%3").arg(sourceInfo.baseName()).arg(i++).arg(sourceInfo.suffix()));
+    }
+
+    if (!isDir) {
+        if (QFile::copy(sourcePath, destPath)) {
+            statusBar()->showMessage("Pasted: " + destPath, 2000);
+        } else {
+            QMessageBox::critical(this, "Error", "Could not paste file !");
+        }
+    } else {
+        if (copyRecursively(sourcePath, destPath)) {
+            statusBar()->showMessage("Pasted folder: " + destPath, 2000);
+        } else {
+            QMessageBox::critical(this, "Error", "Could not paste folder !");
+        }
+    }
 }
 
 void MainWindow::about()
@@ -261,7 +385,7 @@ void MainWindow::createActions()
 
             tabs->setTabText(key, newName);
 
-            statusBar()->showMessage("Index updated : " + newName, 5000);
+            statusBar()->showMessage("Index updated: " + newName, 2000);
         }
     });
 
@@ -321,26 +445,26 @@ void MainWindow::createActions()
     connect(explorer, &QTreeView::customContextMenuRequested, this, [this](const QPoint &pos) {
         QModelIndex index = explorer->indexAt(pos);
 
-        QMenu *menu = new QMenu();
+        QMenu menu(this);
 
-        menu->addAction(newAct);
-        menu->addAction(newFAct);
-        menu->addSeparator();
+        menu.addAction(newAct);
+        menu.addAction(newFAct);
+        menu.addSeparator();
 
         if (index.isValid()) {
-            menu->addAction(deleteAct);
-            menu->addSeparator();
-            menu->addAction(renameAct);
-            menu->addSeparator();
-            menu->addAction(cutAct);
-            menu->addAction(copyAct);
-            menu->addAction(pasteAct);
+            menu.addAction(deleteAct);
+            menu.addSeparator();
+            menu.addAction(renameAct);
+            menu.addSeparator();
+            menu.addAction(cutAct);
+            menu.addAction(copyAct);
+            menu.addAction(pasteAct);
         } else {
             explorer->clearSelection();
             explorer->setCurrentIndex(QModelIndex());
         }
 
-        menu->exec(explorer->viewport()->mapToGlobal(pos));
+        menu.exec(explorer->viewport()->mapToGlobal(pos));
     });
     
 
@@ -364,7 +488,7 @@ void MainWindow::createActions()
 
                 openedFiles.insert(filePath, newIndex);
 
-                statusBar()->showMessage("File loaded : " + filePath, 5000);
+                statusBar()->showMessage("File loaded: " + filePath, 2000);
 
                 file.close();
             }
@@ -437,6 +561,7 @@ void MainWindow::createTextEditor()
     explorer->hideColumn(3);
     explorer->setContextMenuPolicy(Qt::CustomContextMenu);
     explorer->setEditTriggers(QAbstractItemView::NoEditTriggers);
+    explorer->viewport()->installEventFilter(this);
 
     fileSysLayout = new QVBoxLayout;
     fileSysLayout->addWidget(header);

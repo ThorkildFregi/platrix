@@ -28,6 +28,8 @@ protected:
 #ifndef QT_NO_CONTEXTMENU
     void contextMenuEvent(QContextMenuEvent *event) override;
 #endif
+    bool eventFilter(QObject *obj, QEvent *event) override;
+    bool copyRecursively(const QString &srcPath, const QString &dstPath);
 
 private slots:
     void newFile();
