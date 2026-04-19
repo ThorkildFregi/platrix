@@ -96,11 +96,13 @@ jobs:
           cmake -B build -DCMAKE_BUILD_TYPE=Release -DCMAKE_PREFIX_PATH="${{ steps.qt.outputs.qt_dir }}"
           cmake --build build --config Release
 
-          mkdir -p AppDir/usr/bin
-          BINARY_PATH=$(find build -type f -executable -name "platrix" | head -n 1)
-          cp "$BINARY_PATH" AppDir/usr/bin/
+          make -C build install DESTDIR=$(pwd)/AppDir
           
-          cat <<EOF > AppDir/platrix.desktop
+          wget https://github.com/linuxdeploy/linuxdeploy/releases/download/continuous/linuxdeploy-x86_64.AppImage
+          wget https://github.com/linuxdeploy/linuxdeploy-plugin-qt/releases/download/continuous/linuxdeploy-plugin-qt-x86_64.AppImage
+          chmod +x linuxdeploy*.AppImage
+          
+          cat <<EOF > platrix.desktop
           [Desktop Entry]
           Type=Application
           Name=Platrix
@@ -108,21 +110,18 @@ jobs:
           Icon=platrix
           Categories=Utility;
           EOF
-          
-          touch AppDir/platrix.png 
-          
-          wget -c https://github.com/probonopd/linuxdeployqt/releases/download/continuous/linuxdeployqt-continuous-x86_64.AppImage
-          chmod +x linuxdeployqt-continuous-x86_64.AppImage
-          
-          export PATH="${{ steps.qt.outputs.qt_dir }}/bin:$PATH"
+          touch platrix.png 
+
+          export QMAKE="${{ steps.qt.outputs.qt_dir }}/bin/qmake"
           export VERSION=${{ github.ref_name }}
           
-          ./linuxdeployqt-continuous-x86_64.AppImage AppDir/platrix.desktop \
-            -appimage \
-            -unsupported-allow-new-glibc \
-            -no-translations \
-            -bundle-non-qt-libs \
-            -verbose=2
+          ./linuxdeploy-x86_64.AppImage --appdir AppDir \
+            -e $(find build -type f -executable -name "platrix" | head -n 1) \
+            -d platrix.desktop \
+            -i platrix.png \
+            --plugin qt \
+            --output appimage
+          
           mv *.AppImage platrix-${{ github.ref_name }}-linux.AppImage
 
       - name: Create GitHub Release
