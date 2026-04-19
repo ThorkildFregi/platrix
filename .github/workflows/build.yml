@@ -95,31 +95,18 @@ jobs:
                                 libxcb-shape0 libfuse2
           cmake -B build -DCMAKE_BUILD_TYPE=Release -DCMAKE_PREFIX_PATH="${{ steps.qt.outputs.qt_dir }}"
           cmake --build build --config Release
-
-          make -C build install DESTDIR=$(pwd)/AppDir
           
           wget https://github.com/linuxdeploy/linuxdeploy/releases/download/continuous/linuxdeploy-x86_64.AppImage
           wget https://github.com/linuxdeploy/linuxdeploy-plugin-qt/releases/download/continuous/linuxdeploy-plugin-qt-x86_64.AppImage
           chmod +x linuxdeploy*.AppImage
-          
-          echo "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=" | base64 -d > platrix.png
-
-          cat <<EOF > platrix.desktop
-          [Desktop Entry]
-          Type=Application
-          Name=Platrix
-          Exec=platrix
-          Icon=platrix
-          Categories=Utility;
-          EOF
 
           export QMAKE="${{ steps.qt.outputs.qt_dir }}/bin/qmake"
           export VERSION=${{ github.ref_name }}
           
           ./linuxdeploy-x86_64.AppImage --appdir AppDir \
             -e $(find build -type f -executable -name "platrix" | head -n 1) \
-            -d platrix.desktop \
-            -i platrix.png \
+            -d distribution/platrix.desktop \
+            -i distribution/platrix.png \
             --plugin qt \
             --output appimage
           
