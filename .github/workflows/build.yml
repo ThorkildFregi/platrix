@@ -86,12 +86,13 @@ jobs:
                                 libxcb-shape0 libfuse2
           cmake -B build -DCMAKE_BUILD_TYPE=Release -DCMAKE_PREFIX_PATH="${{ steps.qt.outputs.qt_dir }}"
           cmake --build build --config Release
+          BINARY_PATH=$(find build -type f -executable -name "platrix" | head -n 1)
+          echo "Binaire trouvé ici : $BINARY_PATH"
           wget -c https://github.com/probonopd/linuxdeployqt/releases/download/continuous/linuxdeployqt-continuous-x86_64.AppImage
           chmod +x linuxdeployqt-continuous-x86_64.AppImage
-          unset QTDIR; unset QT_PLUGIN_PATH; unset LD_LIBRARY_PATH
-          # Note: Assure-toi d'avoir un fichier platrix.desktop à la racine
-          ./linuxdeployqt-continuous-x86_64.AppImage build/platrix -appimage -unsupported-allow-new-glibc
-          mv platrix-x86_64.AppImage platrix-${{ github.ref_name }}-linux.AppImage
+          export PATH="${{ steps.qt.outputs.qt_dir }}/bin:$PATH"
+          ./linuxdeployqt-continuous-x86_64.AppImage "$BINARY_PATH" -appimage -unsupported-allow-new-glibc
+          mv *.AppImage platrix-${{ github.ref_name }}-linux.AppImage
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v1
