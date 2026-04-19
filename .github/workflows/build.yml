@@ -95,8 +95,12 @@ jobs:
                                 libxcb-shape0 libfuse2
           cmake -B build -DCMAKE_BUILD_TYPE=Release -DCMAKE_PREFIX_PATH="${{ steps.qt.outputs.qt_dir }}"
           cmake --build build --config Release
+
+          mkdir -p AppDir/usr/bin
           BINARY_PATH=$(find build -type f -executable -name "platrix" | head -n 1)
-          cat <<EOF > platrix.desktop
+          cp "$BINARY_PATH" AppDir/usr/bin/
+          
+          cat <<EOF > AppDir/platrix.desktop
           [Desktop Entry]
           Type=Application
           Name=Platrix
@@ -105,17 +109,19 @@ jobs:
           Categories=Utility;
           EOF
           
+          touch AppDir/platrix.png 
+          
           wget -c https://github.com/probonopd/linuxdeployqt/releases/download/continuous/linuxdeployqt-continuous-x86_64.AppImage
           chmod +x linuxdeployqt-continuous-x86_64.AppImage
           
           export PATH="${{ steps.qt.outputs.qt_dir }}/bin:$PATH"
           export VERSION=${{ github.ref_name }}
           
-          ./linuxdeployqt-continuous-x86_64.AppImage platrix.desktop \
+          ./linuxdeployqt-continuous-x86_64.AppImage AppDir/platrix.desktop \
             -appimage \
-            -executable="$BINARY_PATH" \
             -unsupported-allow-new-glibc \
             -no-translations \
+            -bundle-non-qt-libs \
             -verbose=2
           mv *.AppImage platrix-${{ github.ref_name }}-linux.AppImage
 
