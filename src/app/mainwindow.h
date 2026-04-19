@@ -34,6 +34,7 @@ private slots:
     void newFolder();
     void open();
     void save();
+    void deleteF();
     void rename();
     void undo();
     void redo();
@@ -72,6 +73,7 @@ private:
     QAction *newFAct;
     QAction *openAct;
     QAction *saveAct;
+    QAction *deleteAct;
     QAction *renameAct;
     QAction *undoAct;
     QAction *redoAct;

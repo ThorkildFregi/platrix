@@ -31,7 +31,43 @@ void MainWindow::contextMenuEvent(QContextMenuEvent *event)
 
 void MainWindow::newFile()
 {
+    QModelIndex currentIndex = explorer->currentIndex();
+    QString parentPath;
 
+    if (currentIndex.isValid()) {
+        if (model->isDir(currentIndex)) {
+            parentPath = model->filePath(currentIndex);
+        } else {
+            parentPath = model->fileInfo(currentIndex).absolutePath();
+        }
+    } else {
+        parentPath = model->rootPath();
+    }
+
+    QDir dir(parentPath);
+    QString fileName = "new_file";
+    if (dir.exists(fileName)) {
+        int i = 1;
+        while (dir.exists(QString("new_folder_%1").arg(i))) {
+            i++;
+        }
+        fileName = QString("new_folder_%1").arg(i);
+    }
+
+    QString filePath = dir.absoluteFilePath(fileName);
+    QFile file(filePath);
+
+    if (file.open(QIODevice::WriteOnly)) {
+        file.close();
+
+        QModelIndex newIndex = model->index(filePath);
+
+        if (newIndex.isValid()) {
+            explorer->scrollTo(newIndex);
+            explorer->setCurrentIndex(newIndex);
+            explorer->edit(newIndex);
+        }
+    }
 }
 
 void MainWindow::newFolder()
@@ -53,10 +89,10 @@ void MainWindow::newFolder()
     QString folderName = "new_folder";
     if (dir.exists(folderName)) {
         int i = 1;
-        while (dir.exists(QString("New Folder (%1)").arg(i))) {
+        while (dir.exists(QString("new_folder_%1").arg(i))) {
             i++;
         }
-        folderName = QString("New Folder (%1)").arg(i);
+        folderName = QString("new_folder_%1").arg(i);
     }
 
     if (dir.mkdir(folderName)) {
@@ -96,6 +132,32 @@ void MainWindow::save()
 
             file.close();
         }
+    }
+}
+
+void MainWindow::deleteF()
+{
+    QModelIndex currentIndex = explorer->currentIndex();
+    if (!currentIndex.isValid()) return;
+    
+    QString path = model->filePath(currentIndex);
+    QDir dir(path);
+    QFile file(path);
+
+    if (dir.exists()) {
+        dir.removeRecursively();
+    } 
+    else if (file.exists()) {
+        if (openedFiles.contains(path)){
+            int key = openedFiles.value(path);
+
+            tabs->removeTab(key);
+        }
+
+        file.remove();
+    } 
+    else {
+        QMessageBox::critical(this, "Error", "File/Folder can't be found !");
     }
 }
 
@@ -162,8 +224,16 @@ void MainWindow::createActions()
     connect(saveAct, &QAction::triggered, this, &MainWindow::save);
 
 
+    deleteAct = new QAction("&Delete", this);
+    deleteAct->setShortcut(Qt::Key_Delete);
+    deleteAct->setStatusTip("Delete a file or a folder");
+
+    connect(deleteAct, &QAction::triggered, this, &MainWindow::deleteF);
+
+
     renameAct = new QAction("&Rename", this);
     renameAct->setShortcut(QKeySequence(Qt::Key_F2));
+    renameAct->setStatusTip("Rename a file or a folder");
 
     connect(renameAct, &QAction::triggered, this, &MainWindow::rename);
 
@@ -249,6 +319,8 @@ void MainWindow::createActions()
         menu->addSeparator();
 
         if (index.isValid()) {
+            menu->addAction(deleteAct);
+            menu->addSeparator();
             menu->addAction(renameAct);
             menu->addSeparator();
             menu->addAction(cutAct);
@@ -302,6 +374,8 @@ void MainWindow::createMenus()
     fileMenu->addAction(saveAct);
     
     editMenu = menuBar()->addMenu("&Edit");
+    editMenu->addAction(deleteAct);
+    editMenu->addSeparator();
     editMenu->addAction(undoAct);
     editMenu->addAction(redoAct);
     editMenu->addSeparator();
