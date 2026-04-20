@@ -7,12 +7,12 @@ int main(int argc, char *argv[])
 {
     QApplication app(argc, argv);
 
+    QCoreApplication::setOrganizationName("avandal");
+    QCoreApplication::setApplicationName("platrix");
+
     auto &manager = SettingsManager::instance();
     manager.init();
 
-    QCoreApplication::setOrganizationName("avandal");
-    QCoreApplication::setApplicationName("platrix");
-    
     MainWindow window;
     window.applyTheme(manager.get("darkTheme"));
     window.show();

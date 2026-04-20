@@ -61,7 +61,6 @@ private slots:
     void about();
     
     void updateFontSize(const QVariant &value);
-    void updateTabSize(const QVariant &value);
 
 private:
     void createActions();

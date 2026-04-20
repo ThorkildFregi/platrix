@@ -6,6 +6,8 @@
 #include <QJsonObject>
 #include <QJsonDocument>
 
+#include <QMessageBox>
+
 #include "settingsmanager.h"
 
 SettingsManager::SettingsManager(QObject *parent) : QObject(parent) 
@@ -53,21 +55,23 @@ void SettingsManager::loadDefaults() {
 void SettingsManager::loadSettings()
 {
     QFile file(getSettingsPath());
-
-    if (file.open(QIODevice::ReadOnly)) {
-        QJsonDocument doc = QJsonDocument::fromJson(file.readAll());
-        QJsonObject json = doc.object();
-        
-        for (auto it = settings.begin(); it != settings.end(); ++it) {
-            QString key = it.key();
-
-            if (json.contains(key)) {
-                settings[key] = json[key].toVariant();
-            }
-        }
-
-        file.close();
+    if (!file.open(QIODevice::ReadOnly)) {
+        saveSettings();
+        return;
     }
+
+    QJsonDocument doc = QJsonDocument::fromJson(file.readAll());
+    QJsonObject json = doc.object();
+
+    for (QString key : json.keys()) {
+        if (json[key].isDouble()) {
+            settings[key] = json[key].toInt(); 
+        } else {
+            settings[key] = json[key].toVariant();
+        }
+    }
+    
+    file.close();
 }
 
 void SettingsManager::saveSettings()

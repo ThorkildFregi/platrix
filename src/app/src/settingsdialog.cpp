@@ -2,6 +2,7 @@
 #include <QVBoxLayout>
 #include <QScrollArea>
 
+#include <QFrame>
 #include <QLabel>
 #include <QSpinBox>
 #include <QCheckBox>
@@ -38,8 +39,14 @@ SettingsDialog::SettingsDialog(QWidget *parent) : QDialog(parent) {
 
             uiWidgets[key] = widget;
 
+            QFrame *line = new QFrame();
+            line->setObjectName("settingsSeparator");
+            line->setFrameShape(QFrame::HLine);
+            line->setFrameShadow(QFrame::Sunken);
+
             settingsLayout->addWidget(label);
             settingsLayout->addWidget(widget);
+            settingsLayout->addWidget(line);
         } 
         else if (settings.value(key).typeId() == QMetaType::Bool) {
             QLabel *label = new QLabel;
@@ -47,13 +54,19 @@ SettingsDialog::SettingsDialog(QWidget *parent) : QDialog(parent) {
             label->setMaximumHeight(20);
             
             QCheckBox *widget = new QCheckBox;
-            widget->setChecked(settingsLabel.value(key).toBool());
+            widget->setChecked(settings.value(key).toBool());
             widget->setMaximumWidth(100);
 
             uiWidgets[key] = widget;
 
+            QFrame *line = new QFrame();
+            line->setObjectName("settingsSeparator");
+            line->setFrameShape(QFrame::HLine);
+            line->setFrameShadow(QFrame::Sunken);
+
             settingsLayout->addWidget(label);
             settingsLayout->addWidget(widget);
+            settingsLayout->addWidget(line);
         } 
         else {
             QMessageBox::critical(this, "Error", "A setting is not of type int or bool !");
@@ -63,6 +76,7 @@ SettingsDialog::SettingsDialog(QWidget *parent) : QDialog(parent) {
     settingsLayout->addStretch(1);
 
     settingsWidget = new QWidget;
+    settingsWidget->setObjectName("settingsWidget");
     settingsWidget->setLayout(settingsLayout);
     
     settingsScrollArea = new QScrollArea;
