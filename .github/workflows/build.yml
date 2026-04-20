@@ -48,7 +48,7 @@ jobs:
             --outputdir ${{ github.workspace }}/Qt
 
           if [ "${{ matrix.os }}" = "windows-latest" ]; then
-            QT_ROOT="${{ github.workspace }}\Qt\6.8.3\msvc2022_64"
+            QT_ROOT="${{ github.workspace }}/Qt/6.8.3/msvc2022_64"
           elif [ "${{ matrix.os }}" = "macos-latest" ]; then
             QT_ROOT="${{ github.workspace }}/Qt/6.8.3/macos"
           else
@@ -66,25 +66,24 @@ jobs:
         if: matrix.os == 'windows-latest'
         shell: pwsh
         run: |
-          $BASE_PATH = $env:GITHUB_WORKSPACE
-          $QT_PATH = Join-Path $BASE_PATH "Qt\6.8.3\msvc2022_64"
+          $QT_PATH = "${{ steps.qt.outputs.qt_dir }}"
+          Write-Host "Utilisation du chemin Qt : $QT_PATH"
           
-          Write-Host "Chemin reconstruit : $QT_PATH"
-          
-          $env:PATH = "$(Join-Path $QT_PATH 'bin');" + $env:PATH
-          
-          cmake -B build -DCMAKE_BUILD_TYPE=Release -DCMAKE_PREFIX_PATH="$QT_PATH"
+          cmake -B build `
+                -DCMAKE_BUILD_TYPE=Release `
+                -DCMAKE_PREFIX_PATH="$QT_PATH" `
+                -G "Visual Studio 17 2022" -A x64
           
           cmake --build build --config Release
           
-          $EXE = Get-ChildItem -Path build -Filter "platrix.exe" -Recurse | Select-Object -First 1
+          $EXE = Get-ChildItem -Path build -Filter "platrix.exe" -Recurse | Where-Object { $_.FullName -like "*Release*" } | Select-Object -First 1
           
           if ($null -eq $EXE) { 
             Write-Error "Binaire toujours introuvable !"
             exit 1 
           }
           
-          $WINDEPLOY = Join-Path $QT_PATH "bin\windeployqt.exe"
+          $WINDEPLOY = "$QT_PATH/bin/windeployqt.exe"
           & $WINDEPLOY --release --no-translations "$($EXE.FullName)"
           
           Compress-Archive -Path "$($EXE.DirectoryName)\*" -DestinationPath "platrix-${{ github.ref_name }}-windows.zip"
