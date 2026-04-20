@@ -7,7 +7,6 @@ QT_BEGIN_NAMESPACE
 class QAction;
 class QMenu;
 class QWidget;
-class QFileSystemModel;
 class QTreeView;
 class FileModel;
 class QTabWidget;
@@ -33,6 +32,7 @@ protected:
     bool copyRecursively(const QString &srcPath, const QString &dstPath);
 
 private slots:
+    void openSettings();
     void newFile();
     void newFolder();
     void open();
@@ -67,9 +67,11 @@ private:
     QHBoxLayout *layout;
 
     QMenu *fileMenu;
+    QMenu *preferencesMenu;
     QMenu *editMenu;
     QMenu *helpMenu;
 
+    QAction *openSettingsAct;
     QAction *newAct;
     QAction *newFAct;
     QAction *openAct;

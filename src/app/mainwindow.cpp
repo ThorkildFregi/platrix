@@ -2,6 +2,7 @@
 
 #include "mainwindow.h"
 #include "filemodel.h"
+#include "settingsdialog.h"
 
 MainWindow::MainWindow()
 {   
@@ -62,6 +63,13 @@ bool MainWindow::copyRecursively(const QString &srcPath, const QString &dstPath)
     }
 
     return true;
+}
+
+void MainWindow::openSettings()
+{
+    SettingsDialog dialog;
+
+    dialog.exec();
 }
 
 void MainWindow::newFile()
@@ -335,41 +343,47 @@ void MainWindow::about()
 
 void MainWindow::createActions()
 {
-    newAct = new QAction(QIcon::fromTheme(QIcon::ThemeIcon::DocumentNew), "&New File", this);
+    openSettingsAct = new QAction("Settings", this);
+    openSettingsAct->setStatusTip("Open settings dialog");
+
+    connect(openSettingsAct, &QAction::triggered, this, &MainWindow::openSettings);
+    
+
+    newAct = new QAction(QIcon::fromTheme(QIcon::ThemeIcon::DocumentNew), "New File", this);
     newAct->setShortcuts(QKeySequence::New);
     newAct->setStatusTip("Create a new file");
 
     connect(newAct, &QAction::triggered, this, &MainWindow::newFile);
 
 
-    newFAct = new QAction("&New Folder", this);
+    newFAct = new QAction(QIcon::fromTheme(QIcon::ThemeIcon::FolderNew), "New Folder", this);
     newFAct->setStatusTip("Create a new folder");
 
     connect(newFAct, &QAction::triggered, this, &MainWindow::newFolder);
 
 
-    openAct = new QAction(QIcon::fromTheme(QIcon::ThemeIcon::DocumentOpen), "&Open Folder...", this);
+    openAct = new QAction(QIcon::fromTheme(QIcon::ThemeIcon::FolderOpen), "Open Folder...", this);
     openAct->setShortcuts(QKeySequence::Open);
     openAct->setStatusTip("Open an existing folder");
 
     connect(openAct, &QAction::triggered, this, &MainWindow::open);
 
 
-    saveAct = new QAction(QIcon::fromTheme(QIcon::ThemeIcon::DocumentSave), "&Save", this);
+    saveAct = new QAction(QIcon::fromTheme(QIcon::ThemeIcon::DocumentSave), "Save", this);
     saveAct->setShortcuts(QKeySequence::Save);
     saveAct->setStatusTip("Save the file to disk");
 
     connect(saveAct, &QAction::triggered, this, &MainWindow::save);
 
 
-    deleteAct = new QAction("&Delete", this);
+    deleteAct = new QAction("Delete", this);
     deleteAct->setShortcut(Qt::Key_Delete);
     deleteAct->setStatusTip("Delete a file or a folder");
 
     connect(deleteAct, &QAction::triggered, this, &MainWindow::deleteF);
 
 
-    renameAct = new QAction("&Rename", this);
+    renameAct = new QAction("Rename", this);
     renameAct->setShortcut(QKeySequence(Qt::Key_F2));
     renameAct->setStatusTip("Rename a file or a folder");
 
@@ -395,28 +409,28 @@ void MainWindow::createActions()
     });
 
 
-    cutAct = new QAction(QIcon::fromTheme(QIcon::ThemeIcon::EditCut), "Cu&t", this);
+    cutAct = new QAction(QIcon::fromTheme(QIcon::ThemeIcon::EditCut), "Cut", this);
     cutAct->setShortcuts(QKeySequence::Cut);
     cutAct->setStatusTip("Cut the current selection's contents to the clipboard");
 
     connect(cutAct, &QAction::triggered, this, &MainWindow::cut);
 
 
-    copyAct = new QAction(QIcon::fromTheme(QIcon::ThemeIcon::EditCopy), "&Copy", this);
+    copyAct = new QAction(QIcon::fromTheme(QIcon::ThemeIcon::EditCopy), "Copy", this);
     copyAct->setShortcuts(QKeySequence::Copy);
     copyAct->setStatusTip("Copy the current selection's contents to the clipboard");
 
     connect(copyAct, &QAction::triggered, this, &MainWindow::copy);
 
 
-    pasteAct = new QAction(QIcon::fromTheme(QIcon::ThemeIcon::EditPaste), "&Paste", this);
+    pasteAct = new QAction(QIcon::fromTheme(QIcon::ThemeIcon::EditPaste), "Paste", this);
     pasteAct->setShortcuts(QKeySequence::Paste);
     pasteAct->setStatusTip("Paste the clipboard's contents into the current selection");
 
     connect(pasteAct, &QAction::triggered, this, &MainWindow::paste);
 
 
-    aboutAct = new QAction(QIcon::fromTheme(QIcon::ThemeIcon::HelpAbout), "&About", this);
+    aboutAct = new QAction(QIcon::fromTheme(QIcon::ThemeIcon::HelpAbout), "About", this);
     aboutAct->setStatusTip("Show the application's About box");
 
     connect(aboutAct, &QAction::triggered, this, &MainWindow::about);
@@ -489,15 +503,18 @@ void MainWindow::createActions()
 
 void MainWindow::createMenus()
 {
-    fileMenu = menuBar()->addMenu("&File");
+    fileMenu = menuBar()->addMenu("File");
     fileMenu->addAction(newAct);
     fileMenu->addAction(newFAct);
     fileMenu->addSeparator();
     fileMenu->addAction(openAct);
     fileMenu->addSeparator();
     fileMenu->addAction(saveAct);
+    fileMenu->addSeparator();
+    preferencesMenu = fileMenu->addMenu("Preferences");
+    preferencesMenu->addAction(openSettingsAct);
     
-    editMenu = menuBar()->addMenu("&Edit");
+    editMenu = menuBar()->addMenu("Edit");
     editMenu->addAction(deleteAct);
     editMenu->addSeparator();
     editMenu->addAction(renameAct);
@@ -506,7 +523,7 @@ void MainWindow::createMenus()
     editMenu->addAction(copyAct);
     editMenu->addAction(pasteAct);
 
-    helpMenu = menuBar()->addMenu("&Help");
+    helpMenu = menuBar()->addMenu("Help");
     helpMenu->addAction(aboutAct);
 }
 
