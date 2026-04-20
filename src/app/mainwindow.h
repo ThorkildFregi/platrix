@@ -23,7 +23,6 @@ class MainWindow : public QMainWindow
 
 public:
     MainWindow();
-    static QString getSettingsPath();
 
 protected:
 #ifndef QT_NO_CONTEXTMENU
@@ -49,7 +48,6 @@ private:
     void createActions();
     void createMenus();
     void createTextEditor();
-    void loadSettings();
 
     QWidget *centralWidget;
     QWidget *leftWidget;

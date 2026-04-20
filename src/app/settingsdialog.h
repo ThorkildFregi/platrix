@@ -12,8 +12,13 @@
 #include <QFile>
 #include <QJsonDocument>
 #include <QJsonObject>
+#include <QJsonValue>
 #include <QStandardPaths>
+#include <QIODevice>
 #include <QDir>
+#include<QMessageBox>
+
+#include "settingsmanager.h"
 
 class SettingsDialog : public QDialog 
 {
@@ -24,31 +29,47 @@ public:
         setWindowTitle("Settings");
         setMinimumSize(300, 200);
 
-        fontSizeLabel = new QLabel;
-        fontSizeLabel->setText("Editor: Font Size");
-        fontSizeLabel->setMaximumHeight(20);
-        fontSizeBox = new QSpinBox;
-        fontSizeBox->setMaximumWidth(100);
-
-        tabSizeLabel = new QLabel;
-        tabSizeLabel->setText("Editor: Tab Size");
-        tabSizeLabel->setMaximumHeight(20);
-        tabSizeBox = new QSpinBox;
-        tabSizeBox->setMaximumWidth(100);
-
-        darkThemeLabel = new QLabel;
-        darkThemeLabel->setText("Theme: Dark Theme");
-        darkThemeLabel->setMaximumHeight(20);
-        darkThemeCheck = new QCheckBox;
-
         settingsLayout = new QVBoxLayout;
         settingsLayout->setAlignment(Qt::AlignTop);
-        settingsLayout->addWidget(fontSizeLabel);
-        settingsLayout->addWidget(fontSizeBox);
-        settingsLayout->addWidget(tabSizeLabel);
-        settingsLayout->addWidget(tabSizeBox);
-        settingsLayout->addWidget(darkThemeLabel);
-        settingsLayout->addWidget(darkThemeCheck);
+        
+        auto &settings = SettingsManager::instance().settings;
+
+        uiWidgets.clear();
+
+        for (const QString &key : settingsList) {
+            if (settings.value(key).typeId() == QMetaType::Int) {
+                QLabel *label = new QLabel;
+                label->setText(settingsLabel.value(key).toString());
+                label->setMaximumHeight(20);
+
+                QSpinBox *widget = new QSpinBox;
+                widget->setValue(settings.value(key).toInt());
+                widget->setMaximumWidth(100);
+
+                uiWidgets[key] = widget;
+
+                settingsLayout->addWidget(label);
+                settingsLayout->addWidget(widget);
+            } 
+            else if (settings.value(key).typeId() == QMetaType::Bool) {
+                QLabel *label = new QLabel;
+                label->setText(settingsLabel.value(key).toString());
+                label->setMaximumHeight(20);
+                
+                QCheckBox *widget = new QCheckBox;
+                widget->setChecked(settingsLabel.value(key).toBool());
+                widget->setMaximumWidth(100);
+
+                uiWidgets[key] = widget;
+
+                settingsLayout->addWidget(label);
+                settingsLayout->addWidget(widget);
+            } 
+            else {
+                QMessageBox::critical(this, "Error", "A setting is not of type int or bool !");
+            }
+        }
+        
         settingsLayout->addStretch(1);
 
         settingsWidget = new QWidget;
@@ -63,13 +84,31 @@ public:
 
         connect(applyButton, &QPushButton::clicked, this, &SettingsDialog::applySettings);
 
-        mainLayout = new QVBoxLayout;
+        mainLayout = new QVBoxLayout(this);
         mainLayout->addWidget(settingsScrollArea, 1);
         mainLayout->addWidget(applyButton, 0, Qt::AlignLeft);
 
-        loadSettings();
-
         setLayout(mainLayout);
+    }
+
+private slots:
+    void applySettings() 
+    {
+        auto &manager = SettingsManager::instance();
+
+        for (auto it = uiWidgets.begin(); it != uiWidgets.end(); ++it) {
+            QString key = it.key();
+            QWidget *widget = it.value();
+
+            if (QSpinBox* sb = qobject_cast<QSpinBox*>(widget)) {
+                manager.set(key, sb->value());
+            } 
+            else if (QCheckBox* cb = qobject_cast<QCheckBox*>(widget)) {
+                manager.set(key, cb->isChecked());
+            }
+        }
+
+        accept();
     }
 
 private:
@@ -91,39 +130,14 @@ private:
 
     QScrollArea *settingsScrollArea;
 
-    void loadSettings() {
-        QFile file(MainWindow::getSettingsPath());
-        
-        if (file.open(QIODevice::ReadOnly)) {
-            QJsonDocument doc = QJsonDocument::fromJson(file.readAll());
-            QJsonObject json = doc.object();
-            
-            fontSizeBox->setValue(json["fontSize"].toInt(14));
-            tabSizeBox->setValue(json["tabSize"].toInt(4));
-            darkThemeCheck->setChecked(json["darkTheme"].toBool(false));
+    QStringList settingsList = {"fontSize", "tabSize", "darkTheme"};
 
-            file.close();
-        }
-    }
-
-    void applySettings() {
-        QJsonObject json;
-
-        json["fontSize"] = fontSizeBox->value();
-        json["tabSize"] = tabSizeBox->value();
-        json["darkTheme"] = darkThemeCheck->isChecked();
-
-        QFile file(MainWindow::getSettingsPath());
-        if (file.open(QIODevice::WriteOnly)) {
-            QJsonDocument doc(json);
-            
-            file.write(doc.toJson());
-
-            file.close();
-        }
-
-        accept();
-    }
+    QMap<QString, QWidget*> uiWidgets;
+    QMap<QString, QVariant> settingsLabel = {
+        {"fontSize", "Editor: Font Size"},
+        {"tabSize", "Editor: Tab Size"},
+        {"darkTheme", "Theme: Dark Theme"}
+    };
 };
 
 #endif

@@ -1,6 +1,6 @@
 qt_add_executable(platrix
     main.cpp
-    mainwindow.cpp mainwindow.h filemodel.h settingsdialog.h
+    mainwindow.cpp mainwindow.h filemodel.h settingsdialog.h settingsmanager.h
 )
 
 target_link_libraries(platrix PRIVATE 
