@@ -50,6 +50,23 @@ bool MainWindow::eventFilter(QObject *obj, QEvent *event)
         }
     }
 
+    if (event->type() == QEvent::KeyPress) {
+        QKeyEvent *keyEvent = static_cast<QKeyEvent *>(event);
+
+        if (keyEvent->key() == Qt::Key_Tab) {
+            QTextEdit *editor = qobject_cast<QTextEdit*>(obj);
+            auto &manager = SettingsManager::instance();
+
+            if (editor) {
+                QString spaces = QString(manager.get("tabSize").toInt(), ' ');
+
+                editor->insertPlainText(spaces); 
+
+                return true;
+            }
+        }
+    }
+
     return QMainWindow::eventFilter(obj, event);
 }
 
@@ -371,19 +388,6 @@ void MainWindow::updateFontSize(const QVariant &value)
     }
 }
 
-void MainWindow::updateTabSize(const QVariant &value) {
-    int spaces = value.toInt();
-
-    for (int i = 0; i < tabs->count(); i++) {
-        QTextEdit *editor = qobject_cast<QTextEdit*>(tabs->widget(i));
-
-        if (editor) {
-                QFontMetrics metrics(editor->font());
-                editor->setTabStopDistance(spaces * metrics.horizontalAdvance(' '));
-        }
-    }
-}
-
 void MainWindow::applyTheme(const QVariant &value) {
     int isDark = value.toBool();
 
@@ -409,27 +413,27 @@ void MainWindow::createActions()
     connect(openSettingsAct, &QAction::triggered, this, &MainWindow::openSettings);
 
 
-    newAct = new QAction(QIcon::fromTheme(QIcon::ThemeIcon::DocumentNew), "&New File", this);
+    newAct = new QAction("&New File", this);
     newAct->setShortcuts(QKeySequence::New);
     newAct->setStatusTip("Create a new file");
 
     connect(newAct, &QAction::triggered, this, &MainWindow::newFile);
 
 
-    newFAct = new QAction(QIcon::fromTheme(QIcon::ThemeIcon::FolderNew), "New &Folder", this);
+    newFAct = new QAction("New &Folder", this);
     newFAct->setStatusTip("Create a new folder");
 
     connect(newFAct, &QAction::triggered, this, &MainWindow::newFolder);
 
 
-    openAct = new QAction(QIcon::fromTheme(QIcon::ThemeIcon::FolderOpen), "&Open Folder...", this);
+    openAct = new QAction("&Open Folder...", this);
     openAct->setShortcuts(QKeySequence::Open);
     openAct->setStatusTip("Open an existing folder");
 
     connect(openAct, &QAction::triggered, this, &MainWindow::open);
 
 
-    saveAct = new QAction(QIcon::fromTheme(QIcon::ThemeIcon::DocumentSave), "&Save", this);
+    saveAct = new QAction("&Save", this);
     saveAct->setShortcuts(QKeySequence::Save);
     saveAct->setStatusTip("Save the file to disk");
 
@@ -469,28 +473,28 @@ void MainWindow::createActions()
     });
 
 
-    cutAct = new QAction(QIcon::fromTheme(QIcon::ThemeIcon::EditCut), "Cu&t", this);
+    cutAct = new QAction("Cu&t", this);
     cutAct->setShortcuts(QKeySequence::Cut);
     cutAct->setStatusTip("Cut the current selection's contents to the clipboard");
 
     connect(cutAct, &QAction::triggered, this, &MainWindow::cut);
 
 
-    copyAct = new QAction(QIcon::fromTheme(QIcon::ThemeIcon::EditCopy), "&Copy", this);
+    copyAct = new QAction("&Copy", this);
     copyAct->setShortcuts(QKeySequence::Copy);
     copyAct->setStatusTip("Copy the current selection's contents to the clipboard");
 
     connect(copyAct, &QAction::triggered, this, &MainWindow::copy);
 
 
-    pasteAct = new QAction(QIcon::fromTheme(QIcon::ThemeIcon::EditPaste), "&Paste", this);
+    pasteAct = new QAction("&Paste", this);
     pasteAct->setShortcuts(QKeySequence::Paste);
     pasteAct->setStatusTip("Paste the clipboard's contents into the current selection");
 
     connect(pasteAct, &QAction::triggered, this, &MainWindow::paste);
 
 
-    aboutAct = new QAction(QIcon::fromTheme(QIcon::ThemeIcon::HelpAbout), "&About", this);
+    aboutAct = new QAction("&About", this);
     aboutAct->setStatusTip("Show the application's About box");
 
     connect(aboutAct, &QAction::triggered, this, &MainWindow::about);
@@ -549,6 +553,7 @@ void MainWindow::createActions()
 
                 QTextEdit *newEditor = new QTextEdit();
                 newEditor->setPlainText(file.readAll());
+                newEditor->installEventFilter(this);
 
                 QFont font = newEditor->font();
                 font.setPointSize(manager.get("fontSize").toInt());
@@ -642,6 +647,8 @@ void MainWindow::createTextEditor()
     explorer->setDragDropMode(QAbstractItemView::InternalMove);
     explorer->setDefaultDropAction(Qt::MoveAction);
     explorer->setSelectionMode(QAbstractItemView::ExtendedSelection);
+    explorer->clearSelection();
+    explorer->setCurrentIndex(QModelIndex());
 
     fileSysLayout = new QVBoxLayout;
     fileSysLayout->addWidget(header);
@@ -671,7 +678,6 @@ void MainWindow::createTextEditor()
 void MainWindow::setupSettingHandlers() 
 {
     settingHandlers["fontSize"] = [this](QVariant v) { updateFontSize(v.toInt()); };
-    settingHandlers["tabSize"] = [this](QVariant v) { updateTabSize(v.toInt()); };
     settingHandlers["darkTheme"] = [this](QVariant v) { applyTheme(v.toBool()); };
 }
 
