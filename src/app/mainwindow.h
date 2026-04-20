@@ -33,7 +33,6 @@ protected:
 
 private slots:
     void openSettings();
-    void openThemes();
     void newFile();
     void newFolder();
     void open();
@@ -49,6 +48,7 @@ private:
     void createActions();
     void createMenus();
     void createTextEditor();
+    void loadSettings();
 
     QWidget *centralWidget;
     QWidget *leftWidget;
@@ -73,7 +73,6 @@ private:
     QMenu *helpMenu;
 
     QAction *openSettingsAct;
-    QAction *openThemesAct;
     QAction *newAct;
     QAction *newFAct;
     QAction *openAct;

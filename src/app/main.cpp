@@ -7,7 +7,7 @@ int main(int argc, char *argv[])
     QApplication app(argc, argv);
 
     QCoreApplication::setOrganizationName("avandal");
-    QCoreApplication::setApplicationName("paltrix");
+    QCoreApplication::setApplicationName("platrix");
     
     MainWindow window;
     window.show();

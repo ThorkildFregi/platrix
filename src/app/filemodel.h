@@ -1,3 +1,6 @@
+#ifndef FILEMODEL_H
+#define FILEMODEL_H
+
 #include <QFileSystemModel>
 
 class FileModel : public QFileSystemModel {
@@ -27,3 +30,5 @@ public:
         return Qt::CopyAction | Qt::MoveAction;
     }
 };
+
+#endif
