@@ -3,6 +3,7 @@
 #include "mainwindow.h"
 #include "filemodel.h"
 #include "settingsdialog.h"
+#include "themesdialog.h"
 
 MainWindow::MainWindow()
 {   
@@ -68,6 +69,13 @@ bool MainWindow::copyRecursively(const QString &srcPath, const QString &dstPath)
 void MainWindow::openSettings()
 {
     SettingsDialog dialog;
+
+    dialog.exec();
+}
+
+void MainWindow::openThemes()
+{
+    ThemesDialog dialog;
 
     dialog.exec();
 }
@@ -347,6 +355,12 @@ void MainWindow::createActions()
     openSettingsAct->setStatusTip("Open settings dialog");
 
     connect(openSettingsAct, &QAction::triggered, this, &MainWindow::openSettings);
+
+
+    openThemesAct = new QAction("Themes", this);
+    openThemesAct->setStatusTip("Open settings dialog");
+
+    connect(openThemesAct, &QAction::triggered, this, &MainWindow::openThemes);
     
 
     newAct = new QAction(QIcon::fromTheme(QIcon::ThemeIcon::DocumentNew), "New File", this);
@@ -513,6 +527,7 @@ void MainWindow::createMenus()
     fileMenu->addSeparator();
     preferencesMenu = fileMenu->addMenu("Preferences");
     preferencesMenu->addAction(openSettingsAct);
+    preferencesMenu->addAction(openThemesAct);
     
     editMenu = menuBar()->addMenu("Edit");
     editMenu->addAction(deleteAct);

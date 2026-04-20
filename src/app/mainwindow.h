@@ -33,6 +33,7 @@ protected:
 
 private slots:
     void openSettings();
+    void openThemes();
     void newFile();
     void newFolder();
     void open();
@@ -72,6 +73,7 @@ private:
     QMenu *helpMenu;
 
     QAction *openSettingsAct;
+    QAction *openThemesAct;
     QAction *newAct;
     QAction *newFAct;
     QAction *openAct;
