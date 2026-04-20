@@ -33,6 +33,8 @@ jobs:
         id: qt
         shell: bash
         run: |
+          WORKSPACE_FIXED=$(echo "${{ github.workspace }}" | sed 's/\\/\//g')
+
           if [ "${{ matrix.os }}" = "windows-latest" ]; then
             ARCH="win64_msvc2022_64"
             HOST="windows"
@@ -45,7 +47,7 @@ jobs:
           fi
           
           python -m aqt install-qt $HOST desktop 6.8.3 $ARCH \
-            --outputdir ${{ github.workspace }}/Qt
+            --outputdir "${WORKSPACE_FIXED}/Qt"
 
           if [ "${{ matrix.os }}" = "windows-latest" ]; then
             QT_ROOT="${{ github.workspace }}/Qt/6.8.3/msvc2022_64"
