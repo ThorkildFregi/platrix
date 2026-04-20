@@ -3,12 +3,18 @@
 #include "mainwindow.h"
 #include "filemodel.h"
 #include "settingsdialog.h"
+#include "settingsmanager.h"
 
 MainWindow::MainWindow()
 {   
     createTextEditor();
     createActions();
     createMenus();
+
+    connect(&SettingsManager::instance(), &SettingsManager::settingChanged, this, &MainWindow::onSettingChanged);
+
+    setupSettingHandlers();
+    applyAllSettings();
 
     QString message = "A context menu is available by right-clicking";
     statusBar()->showMessage(message);
@@ -63,6 +69,13 @@ bool MainWindow::copyRecursively(const QString &srcPath, const QString &dstPath)
     }
 
     return true;
+}
+
+void MainWindow::onSettingChanged(const QString &key, const QVariant &value)
+{
+    if (settingHandlers.contains(key)) {
+        settingHandlers[key](value);
+    }
 }
 
 void MainWindow::openSettings()
@@ -343,6 +356,51 @@ void MainWindow::about()
     QMessageBox::about(this, "About Platrix", "<b>Platrix</b> is a programming langage specialized in math operations and statistics. \n <a href='https://github.com/ThorkildFregi/platrix/tree/main'>GitHub<a>");
 }
 
+void MainWindow::updateFontSize(const QVariant &value)
+{
+    int size = value.toInt();
+
+    for (int i = 0; i < tabs->count(); i++) {
+        QTextEdit *editor = qobject_cast<QTextEdit*>(tabs->widget(i));
+
+        if (editor) {
+            QFont f = editor->font();
+            f.setPointSize(size);
+            editor->setFont(f);
+        }
+    }
+}
+
+void MainWindow::updateTabSize(const QVariant &value) {
+    int spaces = value.toInt();
+
+    for (int i = 0; i < tabs->count(); i++) {
+        QTextEdit *editor = qobject_cast<QTextEdit*>(tabs->widget(i));
+
+        if (editor) {
+                QFontMetrics metrics(editor->font());
+                editor->setTabStopDistance(spaces * metrics.horizontalAdvance(' '));
+        }
+    }
+}
+
+void MainWindow::applyTheme(const QVariant &value) {
+    int isDark = value.toBool();
+
+    QString filename = isDark ? ":/dark.qss" : ":/light.qss";
+    QFile file(filename);
+    
+    if (file.open(QFile::ReadOnly | QFile::Text)) {
+        QTextStream ts(&file);
+
+        qApp->setStyleSheet(ts.readAll());
+
+        file.close();
+    } else {
+        QMessageBox::critical(this, "Error", "Style can't be found !");
+    }
+}
+
 void MainWindow::createActions()
 {
     openSettingsAct = new QAction("S&ettings", this);
@@ -487,8 +545,18 @@ void MainWindow::createActions()
 
             QFile file(filePath);
             if (file.open(QIODevice::ReadOnly | QIODevice::Text)) {
+                auto &manager = SettingsManager::instance();
+
                 QTextEdit *newEditor = new QTextEdit();
                 newEditor->setPlainText(file.readAll());
+
+                QFont font = newEditor->font();
+                font.setPointSize(manager.get("fontSize").toInt());
+
+                QFontMetrics metrics(newEditor->font());
+
+                newEditor->setTabStopDistance(manager.get("tabSize").toInt() * metrics.horizontalAdvance(' '));
+                newEditor->setFont(font);
                 
                 int newIndex = tabs->addTab(newEditor, info.fileName());
                 tabs->setCurrentIndex(newIndex);
@@ -554,7 +622,6 @@ void MainWindow::createTextEditor()
     model->setReadOnly(false);
 
     header = new QLabel("Explorer", this);
-    header->setStyleSheet("background-color: #470242; color: white; padding: 2px;");
     header->setFixedHeight(25);
 
     QModelIndex rootIndex = model->index(targetPath);
@@ -599,4 +666,22 @@ void MainWindow::createTextEditor()
     layout->addWidget(splitter);
 
     centralWidget->setLayout(layout);
+}
+
+void MainWindow::setupSettingHandlers() 
+{
+    settingHandlers["fontSize"] = [this](QVariant v) { updateFontSize(v.toInt()); };
+    settingHandlers["tabSize"] = [this](QVariant v) { updateTabSize(v.toInt()); };
+    settingHandlers["darkTheme"] = [this](QVariant v) { applyTheme(v.toBool()); };
+}
+
+void MainWindow::applyAllSettings()
+{
+    auto &manager = SettingsManager::instance();
+
+    for (auto it = manager.settings.begin(); it != manager.settings.end(); ++it) {
+        if (settingHandlers.contains(it.key())) {
+            settingHandlers[it.key()](it.value());
+        }
+    }
 }
