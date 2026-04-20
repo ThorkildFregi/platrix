@@ -1,0 +1,45 @@
+QMainWindow, QDialog {
+    background-color: #12141D;
+    color: #A0A4B8;
+}
+
+QPlainTextEdit {
+    background-color: #1B1E2B;
+    color: #D1D5DB;
+    border: none;
+    selection-background-color: #3E4461;
+}
+
+QTabBar::tab {
+    background: #1B1E2B;
+    color: #6B7280;
+    padding: 10px 20px;
+}
+
+QTabBar::tab:selected {
+    background: #12141D;
+    color: #A78BFA;
+    border-bottom: 3px solid #c27eb1;
+}
+
+QMenuBar {
+    background-color: #12141D;
+    color: #A0A4B8;
+}
+
+QMenuBar::item:selected {
+    background-color: #1B1E2B;
+    color: #38BDF8;
+}
+
+QPushButton {
+    background-color: #24293E;
+    color: #D1D5DB;
+    border: 1px solid #3E4461;
+    border-radius: 5px;
+}
+
+QPushButton:hover {
+    border-color: #A78BFA;
+    color: white;
+}
