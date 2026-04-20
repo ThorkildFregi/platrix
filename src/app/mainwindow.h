@@ -23,6 +23,7 @@ class MainWindow : public QMainWindow
 
 public:
     MainWindow();
+    static QString getSettingsPath();
 
 protected:
 #ifndef QT_NO_CONTEXTMENU

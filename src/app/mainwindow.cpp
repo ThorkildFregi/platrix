@@ -9,6 +9,8 @@ MainWindow::MainWindow()
     createTextEditor();
     createActions();
     createMenus();
+    loadSettings();
+    
 
     QString message = "A context menu is available by right-clicking";
     statusBar()->showMessage(message);
@@ -65,13 +67,19 @@ bool MainWindow::copyRecursively(const QString &srcPath, const QString &dstPath)
     return true;
 }
 
+QString MainWindow::getSettingsPath() 
+{
+    QString dir = QStandardPaths::writableLocation(QStandardPaths::AppLocalDataLocation);
+    QDir(dir).mkpath(dir);
+    return dir + "/settings.json";
+}
+
 void MainWindow::openSettings()
 {
     SettingsDialog dialog;
 
     if (dialog.exec() == QDialog::Accepted) {
-        // this->loadSettingsFromJson()
-
+        loadSettings();
         statusBar()->showMessage("Settings applied !", 2000);
     }
 }
@@ -351,7 +359,7 @@ void MainWindow::createActions()
     openSettingsAct->setStatusTip("Open settings dialog");
 
     connect(openSettingsAct, &QAction::triggered, this, &MainWindow::openSettings);
-    
+
 
     newAct = new QAction(QIcon::fromTheme(QIcon::ThemeIcon::DocumentNew), "&New File", this);
     newAct->setShortcuts(QKeySequence::New);
@@ -601,4 +609,29 @@ void MainWindow::createTextEditor()
     layout->addWidget(splitter);
 
     centralWidget->setLayout(layout);
+}
+
+void MainWindow::loadSettings()
+{
+    QFile file(getSettingsPath());
+    if (!file.exists()) {
+        QJsonObject defaultJson;
+        
+        defaultJson["fontSize"] = 14;
+        defaultJson["tabSize"] = 4;
+        defaultJson["darkTheme"] = true;
+
+        if (file.open(QIODevice::WriteOnly)) {
+            QJsonDocument saveDoc(defaultJson);
+            file.write(saveDoc.toJson());
+            file.close();
+        }
+    }
+
+    if (file.open(QIODevice::ReadOnly)) {
+        QJsonDocument doc = QJsonDocument::fromJson(file.readAll());
+        QJsonObject json = doc.object();
+
+        file.close();
+    }
 }

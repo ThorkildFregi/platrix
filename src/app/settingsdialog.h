@@ -91,14 +91,8 @@ private:
 
     QScrollArea *settingsScrollArea;
 
-    QString getSettingsPath() {
-        QString dir = QStandardPaths::writableLocation(QStandardPaths::AppLocalDataLocation);
-        QDir(dir).mkpath(dir);
-        return dir + "/settings.json";
-    }
-
     void loadSettings() {
-        QFile file(getSettingsPath());
+        QFile file(MainWindow::getSettingsPath());
         
         if (file.open(QIODevice::ReadOnly)) {
             QJsonDocument doc = QJsonDocument::fromJson(file.readAll());
@@ -119,7 +113,7 @@ private:
         json["tabSize"] = tabSizeBox->value();
         json["darkTheme"] = darkThemeCheck->isChecked();
 
-        QFile file(getSettingsPath());
+        QFile file(MainWindow::getSettingsPath());
         if (file.open(QIODevice::WriteOnly)) {
             QJsonDocument doc(json);
             
