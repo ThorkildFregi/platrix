@@ -78,7 +78,7 @@ QMenuBar::item:selected {
 }
 
 QMenu {
-    background-color: #260D40; /* Violet principal */
+    background-color: #260D40;
     color: #E5D5F2;
     border: 1px solid #311352;
 }
@@ -89,7 +89,7 @@ QMenu::item {
 
 QMenu::item:selected {
     background-color: #311352;
-    color: #F2D194; /* Orange chaleureux au survol */
+    color: #F2D194;
 }
 
 QMenu::separator {
@@ -151,13 +151,13 @@ QSpinBox::down-button {
 }
 
 QSpinBox::up-arrow {
-    image: url(":/icons/chevron-up.svg");
+    image: url(":/icons/dark_theme/chevron-up.svg");
     width: 16px;
     height: 16px;
 }
 
 QSpinBox::down-arrow {
-    image: url(":/icons/chevron-down.svg");
+    image: url(":/icons/dark_theme/chevron-down.svg");
     width: 16px;
     height: 16px;
 }
