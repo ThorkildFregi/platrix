@@ -1,7 +1,9 @@
 #include <QtWidgets>
 
 #include "mainwindow.h"
+
 #include "filemodel.h"
+
 #include "settingsdialog.h"
 #include "settingsmanager.h"
 
@@ -668,8 +670,6 @@ void MainWindow::createTextEditor()
     centralWidget = new QWidget;
     setCentralWidget(centralWidget);
     
-    centralWidget->setMouseTracking(true);
-
     titleBar = new QWidget();
     titleBar->setObjectName("titleBar");
     titleBar->setFixedHeight(35);
@@ -778,8 +778,7 @@ void MainWindow::createTextEditor()
     splitter->setSizes(QList<int>() << 200 << 800);
 
     QVBoxLayout *mainLayout = new QVBoxLayout(centralWidget);
-    mainLayout->setContentsMargins(0, 0, 0, 0);
-    mainLayout->setSpacing(0);
+    mainLayout->setContentsMargins(5, 0, 5, 5);
 
     mainLayout->addWidget(titleBar);
     mainLayout->addWidget(splitter);

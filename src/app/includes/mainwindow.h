@@ -87,8 +87,6 @@ private:
 
     QMap<QString, std::function<void(QVariant)>> settingHandlers;
 
-    QPoint mouseClickPos;
-
     QWidget* titleBar;
     QWidget *centralWidget;
     QWidget *leftWidget;
