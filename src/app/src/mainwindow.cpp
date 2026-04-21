@@ -60,7 +60,7 @@ bool MainWindow::eventFilter(QObject *obj, QEvent *event)
             explorer->setCurrentIndex(QModelIndex());
         }
     }
-
+    
     if (event->type() == QEvent::MouseMove) {
         QMouseEvent *mouseEvent = static_cast<QMouseEvent*>(event);
         this->mouseMoveEvent(mouseEvent);

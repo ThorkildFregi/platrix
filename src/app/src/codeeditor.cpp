@@ -14,6 +14,7 @@ CodeEditor::CodeEditor(QWidget *parent)
     lineNumberArea = new LineNumberArea(this);
 
     setLineWrapMode(QPlainTextEdit::NoWrap);
+    installEventFilter(this);
 
     connect(this, &CodeEditor::cursorPositionChanged, this, &CodeEditor::highlightCurrentLine);
     connect(this, &CodeEditor::blockCountChanged, this, &CodeEditor::updateLineNumberAreaWidth);
@@ -97,6 +98,55 @@ void CodeEditor::keyPressEvent(QKeyEvent *event) {
     if (event->key() == Qt::Key_Return || event->key() == Qt::Key_Enter) {
 
         insertPlainText("\n");
+        return;
+    }
+
+    if (event->key() == Qt::Key_Backspace && !textCursor().hasSelection()) {
+        QTextCursor cursor = textCursor();
+
+        QString lineText = cursor.block().text();
+        int positionInLine = cursor.positionInBlock();
+        QString textBeforeCursor = lineText.left(positionInLine);
+
+        int tabSize = SettingsManager::instance().get("tabSize").toInt();
+        if (textBeforeCursor.endsWith(QString(tabSize, ' '))) {
+            cursor.beginEditBlock();
+
+            for (int i = 0; i < tabSize; ++i) {
+                cursor.deletePreviousChar();
+            }
+
+            cursor.endEditBlock();
+
+            return;
+        }
+    }
+
+    if (event->key() == Qt::Key_Backtab) {
+        auto &manager = SettingsManager::instance();
+
+        QTextCursor cursor = textCursor();
+        int positionInLine = cursor.positionInBlock();
+
+        cursor.movePosition(QTextCursor::StartOfBlock);
+
+        QString lineText = cursor.block().text();
+
+        int tabSize = SettingsManager::instance().get("tabSize").toInt();
+        if (lineText.startsWith(QString(tabSize, ' '))) {
+            int spacesToRemove = 0;
+
+            while (spacesToRemove < tabSize && spacesToRemove < lineText.length() && lineText[spacesToRemove] == ' ') {
+                spacesToRemove++;
+            }
+
+            cursor.beginEditBlock();
+            for (int i = 0; i < spacesToRemove; ++i) {
+                cursor.deleteChar();
+            }
+            cursor.endEditBlock();
+        }
+        
         return;
     }
 
