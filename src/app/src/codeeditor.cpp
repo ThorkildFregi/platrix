@@ -123,39 +123,71 @@ void CodeEditor::keyPressEvent(QKeyEvent *event) {
     }
 
     if (event->key() == Qt::Key_Backtab) {
-        auto &manager = SettingsManager::instance();
-
         QTextCursor cursor = textCursor();
-        int positionInLine = cursor.positionInBlock();
-
-        cursor.movePosition(QTextCursor::StartOfBlock);
-
-        QString lineText = cursor.block().text();
-
         int tabSize = SettingsManager::instance().get("tabSize").toInt();
-        if (lineText.startsWith(QString(tabSize, ' '))) {
-            int spacesToRemove = 0;
 
-            while (spacesToRemove < tabSize && spacesToRemove < lineText.length() && lineText[spacesToRemove] == ' ') {
-                spacesToRemove++;
-            }
+        int start = cursor.selectionStart();
+        int end = cursor.selectionEnd();
 
-            cursor.beginEditBlock();
-            for (int i = 0; i < spacesToRemove; ++i) {
-                cursor.deleteChar();
+        QTextCursor worker(cursor.document());
+        worker.setPosition(start);
+        int startBlock = worker.blockNumber();
+
+        worker.setPosition(end);
+        int endBlock = worker.blockNumber();
+
+        cursor.beginEditBlock();
+
+        for (int i = startBlock; i <= endBlock; ++i) {
+            QTextBlock block = cursor.document()->findBlockByNumber(i);
+            QTextCursor lineCursor(block);
+            
+            QString text = block.text();
+            if (text.startsWith(' ')) {
+                int toRemove = 0;
+                while (toRemove < tabSize && toRemove < text.length() && text[toRemove] == ' ') {
+                    toRemove++;
+                }
+                
+                lineCursor.movePosition(QTextCursor::StartOfBlock);
+                for (int j = 0; j < toRemove; ++j) {
+                    lineCursor.deleteChar();
+                }
             }
-            cursor.endEditBlock();
         }
-        
+
+        cursor.endEditBlock();
         return;
     }
 
     if (event->key() == Qt::Key_Tab) {
-        auto &manager = SettingsManager::instance();
+        QTextCursor cursor = textCursor();
+        int tabSize = SettingsManager::instance().get("tabSize").toInt();
 
-        QString spaces = QString(manager.get("tabSize").toInt(), ' ');
+        if (cursor.hasSelection()) {
+            int start = cursor.selectionStart();
+            int end = cursor.selectionEnd();
 
-        insertPlainText(spaces);
+            QTextCursor worker = cursor;
+
+            worker.setPosition(start);
+            int startBlock = worker.blockNumber();
+
+            worker.setPosition(end);
+            int endBlock = (worker.columnNumber() == 0) ? worker.blockNumber() - 1 : worker.blockNumber();
+
+            cursor.beginEditBlock();
+
+            for (int i = startBlock; i <= endBlock; ++i) {
+                QTextCursor lineCursor(document()->findBlockByNumber(i));
+                lineCursor.movePosition(QTextCursor::StartOfBlock);
+                lineCursor.insertText(QString(tabSize, ' '));
+            }
+
+            cursor.endEditBlock();
+        } else {
+            insertPlainText(QString(tabSize, ' '));
+        }
 
         return;
     }
