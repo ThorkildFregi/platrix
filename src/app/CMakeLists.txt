@@ -8,6 +8,7 @@ target_sources(platrix PRIVATE
     src/mainwindow.cpp
 
     src/filemodel.cpp
+    src/codeeditor.cpp
 
     src/framelessdialog.cpp
 
@@ -18,6 +19,7 @@ target_sources(platrix PRIVATE
     includes/mainwindow.h
 
     includes/filemodel.h
+    includes/codeeditor.h
 
     includes/framelessdialog.h
 

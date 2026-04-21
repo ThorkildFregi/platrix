@@ -3,6 +3,7 @@
 #include "mainwindow.h"
 
 #include "filemodel.h"
+#include "codeeditor.h"
 
 #include "settingsdialog.h"
 #include "settingsmanager.h"
@@ -31,7 +32,7 @@ MainWindow::MainWindow()
     statusBar()->showMessage(message);
 
     setWindowTitle("Platrix");
-    setMinimumSize(160, 160);
+    setMinimumSize(800, 600);
 }
 
 #ifndef QT_NO_CONTEXTMENU
@@ -57,23 +58,6 @@ bool MainWindow::eventFilter(QObject *obj, QEvent *event)
         if (!index.isValid()) {
             explorer->clearSelection();
             explorer->setCurrentIndex(QModelIndex());
-        }
-    }
-
-    if (event->type() == QEvent::KeyPress) {
-        QKeyEvent *keyEvent = static_cast<QKeyEvent *>(event);
-
-        if (keyEvent->key() == Qt::Key_Tab) {
-            QTextEdit *editor = qobject_cast<QTextEdit*>(obj);
-            auto &manager = SettingsManager::instance();
-
-            if (editor) {
-                QString spaces = QString(manager.get("tabSize").toInt(), ' ');
-
-                editor->insertPlainText(spaces); 
-
-                return true;
-            }
         }
     }
 
@@ -265,7 +249,7 @@ void MainWindow::save()
 
     QString filePath = openedFiles.key(currentIndex);
 
-    QTextEdit *currentEditor = qobject_cast<QTextEdit*>(tabs->currentWidget());
+    CodeEditor *currentEditor = qobject_cast<CodeEditor*>(tabs->currentWidget());
 
     if (currentEditor && !filePath.isEmpty()) {
         QFile file(filePath);
@@ -441,7 +425,7 @@ void MainWindow::updateFontSize(const QVariant &value)
     int size = value.toInt();
 
     for (int i = 0; i < tabs->count(); i++) {
-        QTextEdit *editor = qobject_cast<QTextEdit*>(tabs->widget(i));
+        CodeEditor *editor = qobject_cast<CodeEditor*>(tabs->widget(i));
 
         if (editor) {
             QFont f = editor->font();
@@ -614,17 +598,8 @@ void MainWindow::createActions()
             if (file.open(QIODevice::ReadOnly | QIODevice::Text)) {
                 auto &manager = SettingsManager::instance();
 
-                QTextEdit *newEditor = new QTextEdit();
+                CodeEditor *newEditor = new CodeEditor();
                 newEditor->setPlainText(file.readAll());
-                newEditor->installEventFilter(this);
-
-                QFont font = newEditor->font();
-                font.setPointSize(manager.get("fontSize").toInt());
-
-                QFontMetrics metrics(newEditor->font());
-
-                newEditor->setTabStopDistance(manager.get("tabSize").toInt() * metrics.horizontalAdvance(' '));
-                newEditor->setFont(font);
                 
                 int newIndex = tabs->addTab(newEditor, info.fileName());
                 tabs->setCurrentIndex(newIndex);
