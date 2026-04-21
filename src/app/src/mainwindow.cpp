@@ -11,6 +11,13 @@ MainWindow::MainWindow()
     createActions();
     createMenus();
 
+    fileSystemWatcher = new QFileSystemWatcher();
+    fileSystemWatcher->addPath(SettingsManager::getSettingsPath());
+
+    connect(fileSystemWatcher, &QFileSystemWatcher::fileChanged, this, [this](const QString &path) {
+        this->applyAllSettings();
+        fileSystemWatcher->addPath(path);
+    });
     connect(&SettingsManager::instance(), &SettingsManager::settingChanged, this, &MainWindow::onSettingChanged);
 
     setupSettingHandlers();
@@ -21,7 +28,6 @@ MainWindow::MainWindow()
 
     setWindowTitle("Platrix");
     setMinimumSize(160, 160);
-    resize(800, 600);
 }
 
 #ifndef QT_NO_CONTEXTMENU

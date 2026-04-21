@@ -11,6 +11,7 @@ QT_BEGIN_NAMESPACE
 class QAction;
 
 class FileModel;
+class QFileSystemWatcher;
 
 class QMenu;
 class QWidget;
@@ -77,6 +78,7 @@ private:
     QWidget *rightWidget;
 
     FileModel *model;
+    QFileSystemWatcher *fileSystemWatcher;
 
     QLabel *header;
     QTreeView *explorer;

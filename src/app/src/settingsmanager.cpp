@@ -1,6 +1,7 @@
 #include <QDir>
 #include <QFile>
 #include <QStandardPaths>
+#include <QFileSystemWatcher>
 
 #include <QJsonValue>
 #include <QJsonObject>
@@ -12,6 +13,13 @@
 
 SettingsManager::SettingsManager(QObject *parent) : QObject(parent) 
 {
+    fileSystemWatcher = new QFileSystemWatcher();
+    fileSystemWatcher->addPath(getSettingsPath());
+
+    connect(fileSystemWatcher, &QFileSystemWatcher::fileChanged, this, [this](const QString &path) {
+        this->loadSettings();
+        fileSystemWatcher->addPath(path);
+    });
 }
 
 SettingsManager& SettingsManager::instance() 
