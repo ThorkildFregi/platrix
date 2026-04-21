@@ -18,7 +18,7 @@
 
 SettingsDialog::SettingsDialog(QWidget *parent) : QDialog(parent) {
     setWindowTitle("Settings");
-    setMinimumSize(300, 200);
+    setMinimumSize(800, 600);
 
     settingsLayout = new QVBoxLayout;
     settingsLayout->setAlignment(Qt::AlignTop);

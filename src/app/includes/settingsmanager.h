@@ -7,6 +7,10 @@
 #include <QString>
 #include <QVariant>
 
+QT_BEGIN_NAMESPACE
+class QFileSystemWatcher;
+QT_END_NAMESPACE
+
 class SettingsManager : public QObject
 {
     Q_OBJECT
@@ -15,8 +19,9 @@ public:
     QMap<QString, QVariant> settings;
 
     static SettingsManager& instance();
-
     void init();
+
+    static QString getSettingsPath();
 
     QVariant get(const QString &key) const;
     void set(const QString &key, const QVariant &value);
@@ -27,7 +32,7 @@ signals:
 private:
     explicit SettingsManager(QObject *parent = nullptr);
 
-    QString getSettingsPath();
+    QFileSystemWatcher *fileSystemWatcher;
 
     void loadDefaults();
     void loadSettings();
