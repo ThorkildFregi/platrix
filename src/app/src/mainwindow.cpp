@@ -7,6 +7,8 @@
 
 MainWindow::MainWindow()
 {   
+    setWindowFlags(Qt::FramelessWindowHint | Qt::WindowSystemMenuHint);
+
     createTextEditor();
     createActions();
     createMenus();
@@ -73,6 +75,11 @@ bool MainWindow::eventFilter(QObject *obj, QEvent *event)
         }
     }
 
+    if (event->type() == QEvent::MouseMove) {
+        QMouseEvent *mouseEvent = static_cast<QMouseEvent*>(event);
+        this->mouseMoveEvent(mouseEvent);
+    }
+
     return QMainWindow::eventFilter(obj, event);
 }
 
@@ -92,6 +99,54 @@ bool MainWindow::copyRecursively(const QString &srcPath, const QString &dstPath)
     }
 
     return true;
+}
+
+void MainWindow::mousePressEvent(QMouseEvent *event) 
+{
+    if (event->button() == Qt::LeftButton) {
+        Qt::Edges edges = getMouseEdges(event->pos());
+        
+        if (edges != Qt::Edges()) {
+            windowHandle()->startSystemResize(edges);
+            event->accept();
+        }
+        else if (auto window = windowHandle()) {
+            window->startSystemMove();
+            event->accept();
+        }
+    }
+}
+
+void MainWindow::mouseMoveEvent(QMouseEvent *event)
+{
+    Qt::Edges edges = getMouseEdges(event->pos());
+
+    if ((edges & Qt::LeftEdge && edges & Qt::TopEdge) || (edges & Qt::RightEdge && edges & Qt::BottomEdge))
+        setCursor(Qt::SizeFDiagCursor);
+    else if ((edges & Qt::RightEdge && edges & Qt::TopEdge) || (edges & Qt::LeftEdge && edges & Qt::BottomEdge))
+        setCursor(Qt::SizeBDiagCursor);
+    else if (edges & Qt::LeftEdge || edges & Qt::RightEdge)
+        setCursor(Qt::SizeHorCursor);
+    else if (edges & Qt::TopEdge || edges & Qt::BottomEdge)
+        setCursor(Qt::SizeVerCursor);
+    else
+        setCursor(Qt::ArrowCursor);
+}
+
+Qt::Edges MainWindow::getMouseEdges(const QPoint &pos)
+{
+    Qt::Edges edges = Qt::Edges();
+    int x = pos.x();
+    int y = pos.y();
+    int w = width();
+    int h = height();
+
+    if (x < borderWidth) edges |= Qt::LeftEdge;
+    if (x > w - borderWidth) edges |= Qt::RightEdge;
+    if (y < borderWidth) edges |= Qt::TopEdge;
+    if (y > h - borderWidth) edges |= Qt::BottomEdge;
+
+    return edges;
 }
 
 void MainWindow::onSettingChanged(const QString &key, const QVariant &value)
@@ -584,7 +639,7 @@ void MainWindow::createActions()
 
 void MainWindow::createMenus()
 {
-    fileMenu = menuBar()->addMenu("&File");
+    fileMenu = customMenuBar->addMenu("&File");
     fileMenu->addAction(newAct);
     fileMenu->addAction(newFAct);
     fileMenu->addSeparator();
@@ -595,7 +650,7 @@ void MainWindow::createMenus()
     preferencesMenu = fileMenu->addMenu("&Preferences");
     preferencesMenu->addAction(openSettingsAct);
     
-    editMenu = menuBar()->addMenu("&Edit");
+    editMenu = customMenuBar->addMenu("&Edit");
     editMenu->addAction(deleteAct);
     editMenu->addSeparator();
     editMenu->addAction(renameAct);
@@ -604,7 +659,7 @@ void MainWindow::createMenus()
     editMenu->addAction(copyAct);
     editMenu->addAction(pasteAct);
 
-    helpMenu = menuBar()->addMenu("&Help");
+    helpMenu = customMenuBar->addMenu("&Help");
     helpMenu->addAction(aboutAct);
 }
 
@@ -612,6 +667,54 @@ void MainWindow::createTextEditor()
 {
     centralWidget = new QWidget;
     setCentralWidget(centralWidget);
+    
+    centralWidget->setMouseTracking(true);
+
+    titleBar = new QWidget();
+    titleBar->setObjectName("titleBar");
+    titleBar->setFixedHeight(35);
+    titleBar->setMouseTracking(true);
+    this->setMouseTracking(true);
+
+    QHBoxLayout *titleLayout = new QHBoxLayout(titleBar);
+    titleLayout->setContentsMargins(5, 0, 0, 0);
+    titleLayout->setSpacing(0);
+
+    customMenuBar = new QMenuBar(titleBar); 
+    customMenuBar->setNativeMenuBar(false);
+    customMenuBar->setSizePolicy(QSizePolicy::Minimum, QSizePolicy::Preferred);
+
+    titleLayout->addWidget(customMenuBar);
+    titleLayout->addStretch();
+
+    QLabel *appName = new QLabel();
+    appName->setText("Platrix");
+
+    titleLayout->addWidget(appName);
+    titleLayout->addStretch();
+
+    QPushButton *btnMin = new QPushButton("-");
+    QPushButton *btnMax = new QPushButton("□");
+    QPushButton *btnClose = new QPushButton("✕");
+
+    btnMin->setObjectName("btnMin");
+    btnMax->setObjectName("btnMax");
+    btnClose->setObjectName("btnClose");
+
+    btnMin->setFixedSize(45, 35);
+    btnMax->setFixedSize(45, 35);
+    btnClose->setFixedSize(45, 35);
+
+    titleLayout->addWidget(btnMin);
+    titleLayout->addWidget(btnMax);
+    titleLayout->addWidget(btnClose);
+
+    connect(btnClose, &QPushButton::clicked, this, &MainWindow::close);
+    connect(btnMin, &QPushButton::clicked, this, &MainWindow::showMinimized);
+    connect(btnMax, &QPushButton::clicked, this, [this](){
+        if (isMaximized()) showNormal();
+        else showMaximized();
+    });
 
     QSettings settings;
     QString rootPath;
@@ -673,12 +776,13 @@ void MainWindow::createTextEditor()
     splitter->setStretchFactor(1, 1);
 
     splitter->setSizes(QList<int>() << 200 << 800);
-    
-    layout = new QHBoxLayout;
-    layout->setContentsMargins(5, 5, 5, 5);
-    layout->addWidget(splitter);
 
-    centralWidget->setLayout(layout);
+    QVBoxLayout *mainLayout = new QVBoxLayout(centralWidget);
+    mainLayout->setContentsMargins(0, 0, 0, 0);
+    mainLayout->setSpacing(0);
+
+    mainLayout->addWidget(titleBar);
+    mainLayout->addWidget(splitter);
 }
 
 void MainWindow::setupSettingHandlers() 

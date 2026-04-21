@@ -37,7 +37,10 @@ QTabWidget::pane {
 QTabBar::tab {
     background-color: #F2F2F2;
     color: #BABFD9;
-    padding: 8px 20px;
+    padding-left: 15px;   
+    padding-top: 10px;    
+    padding-right: 10px;
+    padding-bottom: 10px;
     border-bottom: 2px solid transparent;
 }
 
@@ -94,11 +97,10 @@ QCheckBox::indicator:checked {
 QPushButton {
     background-color: #FFFFFF;
     color: #48a3b8;
-    border: 2px solid #48a3b8;
+    border: 1px solid #48a3b8;
     border-radius: 5px;
-    padding: 5px;
-    text-transform: uppercase;
-    font-weight: bold;
+    padding: 3px;
+    min-width: 80px;
 }
 
 QPushButton:hover {
@@ -126,17 +128,6 @@ QScrollBar::handle:vertical:hover {
     background: #F2ACBF;
 }
 
-QMenuBar {
-    background-color: #F2F2F2;
-    color: #F2ACBF;
-    border-bottom: 1px solid #BABFD9;
-}
-
-QMenuBar::item:selected {
-    background-color: #BABFD9;
-    color: #F2F2F2;
-}
-
 QMenu {
     background-color: #FFFFFF;
     color: #8DD5F2;
@@ -159,4 +150,47 @@ QFrame#settingsSeparator {
 QWidget#settingsWidget {
     background-color: #F2F2F2;
     border: none;
+}
+
+QWidget#titleBar {
+    background-color: #E5D5F2;
+    border-bottom: 1px solid #D1B3E6;
+}
+
+QMenuBar {
+    background-color: transparent;
+    color: #311352;
+    font-size: 12px;
+    border: none;
+}
+
+QMenuBar::item {
+    background: transparent;
+    padding: 8px 12px;
+    qproperty-maximumWidth: 300;
+}
+
+QMenuBar::item:selected {
+    background-color: #D4BEEB;
+    border-radius: 4px;
+}
+
+QPushButton#btnMin, QPushButton#btnMax, QPushButton#btnClose {
+    background-color: transparent;
+    border: none;
+    color: #5A4475;
+    font-size: 15px;
+}
+
+QPushButton#btnMin:hover, QPushButton#btnMax:hover {
+    background-color: #D4BEEB;
+}
+
+QPushButton#btnClose:hover {
+    background-color: #FF5F5F;
+    color: white;
+}
+
+QMainWindow {
+    padding: 2px; 
 }
