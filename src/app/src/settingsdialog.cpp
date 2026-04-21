@@ -13,15 +13,44 @@
 #include <QVariant>
 #include <QMetaType>
 
+#include "framelessdialog.h"
+
 #include "settingsdialog.h"
 #include "settingsmanager.h"
 
-SettingsDialog::SettingsDialog(QWidget *parent) : QDialog(parent) {
+SettingsDialog::SettingsDialog(QWidget *parent) : FramelessDialog(parent) {
     setWindowTitle("Settings");
     setMinimumSize(800, 600);
 
+    titleBar = new QWidget();
+    titleBar->setObjectName("titleBar");
+    titleBar->setFixedHeight(35);
+    titleBar->setMouseTracking(true);
+    this->setMouseTracking(true);
+
+    QHBoxLayout *titleLayout = new QHBoxLayout(titleBar);
+    titleLayout->setContentsMargins(5, 0, 0, 0);
+    titleLayout->setSpacing(0);
+
+    titleLayout->addStretch();
+
+    QLabel *appName = new QLabel();
+    appName->setText("Settings");
+
+    titleLayout->addWidget(appName);
+    titleLayout->addStretch();
+
+    QPushButton *btnClose = new QPushButton("✕");
+    btnClose->setObjectName("btnClose");
+    btnClose->setFixedSize(45, 35);
+    
+    titleLayout->addWidget(btnClose);
+
+    connect(btnClose, &QPushButton::clicked, this, &SettingsDialog::close);
+
     settingsLayout = new QVBoxLayout;
     settingsLayout->setAlignment(Qt::AlignTop);
+
     
     auto &settings = SettingsManager::instance().settings;
 
@@ -89,6 +118,9 @@ SettingsDialog::SettingsDialog(QWidget *parent) : QDialog(parent) {
     connect(applyButton, &QPushButton::clicked, this, &SettingsDialog::applySettings);
 
     mainLayout = new QVBoxLayout(this);
+    mainLayout->setContentsMargins(5, 0, 5, 5);
+
+    mainLayout->addWidget(titleBar);
     mainLayout->addWidget(settingsScrollArea, 1);
     mainLayout->addWidget(applyButton, 0, Qt::AlignLeft);
 

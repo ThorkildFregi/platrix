@@ -6,14 +6,24 @@ target_sources(platrix PRIVATE
     main.cpp         
 
     src/mainwindow.cpp
+
     src/filemodel.cpp
+
+    src/framelessdialog.cpp
+
     src/settingsdialog.cpp   
     src/settingsmanager.cpp
+    
 
     includes/mainwindow.h
+
+    includes/filemodel.h
+
+    includes/framelessdialog.h
+
     includes/settingsdialog.h
     includes/settingsmanager.h
-    includes/filemodel.h
+
 
     ressources/ressources.qrc
 )
