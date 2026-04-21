@@ -241,3 +241,7 @@ QPushButton#btnClose:hover {
 QMainWindow {
     padding: 2px; 
 }
+
+QLabel {
+    color: #F2D194;
+}
