@@ -261,6 +261,10 @@ void MainWindow::save()
 
             statusBar()->showMessage("Saved: " + filePath, 2000);
 
+            currentEditor->document()->setModified(false);
+            
+            tabs->setTabIcon(tabs->currentIndex(), QIcon());
+
             file.close();
         }
     }
@@ -598,11 +602,15 @@ void MainWindow::createActions()
             if (file.open(QIODevice::ReadOnly | QIODevice::Text)) {
                 auto &manager = SettingsManager::instance();
 
-                CodeEditor *newEditor = new CodeEditor();
-                newEditor->setPlainText(file.readAll());
+                CodeEditor *newEditor = new CodeEditor(tabs);
                 
                 int newIndex = tabs->addTab(newEditor, info.fileName());
                 tabs->setCurrentIndex(newIndex);
+
+                newEditor->setPlainText(file.readAll());
+                newEditor->document()->setModified(false);
+
+                tabs->setTabIcon(tabs->currentIndex(), QIcon());
 
                 openedFiles.insert(filePath, newIndex);
 

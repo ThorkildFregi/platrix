@@ -1,7 +1,10 @@
 #include <QWidget>
 #include <QTextEdit>
+#include <QTabWidget>
+#include <QTextDocument>
 #include <QPlainTextEdit>
 
+#include <QPixmap>
 #include <QPainter>
 #include <QTextBlock>
 
@@ -15,6 +18,10 @@ CodeEditor::CodeEditor(QWidget *parent)
 
     setLineWrapMode(QPlainTextEdit::NoWrap);
     installEventFilter(this);
+
+    connect(document(), &QTextDocument::modificationChanged, this, [this, parent](bool changed) {
+        this->updateSaveState(parent, changed);
+    });
 
     connect(this, &CodeEditor::cursorPositionChanged, this, &CodeEditor::highlightCurrentLine);
     connect(this, &CodeEditor::blockCountChanged, this, &CodeEditor::updateLineNumberAreaWidth);
@@ -204,6 +211,34 @@ void CodeEditor::updateFontSize()
     f.setPointSize(manager.get("fontSize").toInt());
 
     setFont(f);
+}
+
+void CodeEditor::updateSaveState(QWidget *parent, bool changed)
+{
+    if (changed) {
+        QPixmap px(12, 12);
+        px.fill(Qt::transparent);
+
+        QPainter painter(&px);
+        painter.setRenderHint(QPainter::Antialiasing);
+        painter.setBrush(Qt::white);
+        painter.setPen(Qt::NoPen);
+
+        painter.drawEllipse(1, 1, 10, 10);
+        painter.end();
+
+        QIcon icon(px);
+
+        QTabWidget *tabs = qobject_cast<QTabWidget*>(parent);
+        if (tabs) {
+        tabs->setTabIcon(tabs->currentIndex(), icon);
+        }
+    } else {
+        QTabWidget *tabs = qobject_cast<QTabWidget*>(parent);
+        if (tabs) {
+        tabs->setTabIcon(tabs->currentIndex(), QIcon());
+        }
+    }
 }
 
 void CodeEditor::highlightCurrentLine()

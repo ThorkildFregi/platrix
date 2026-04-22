@@ -24,6 +24,7 @@ protected:
 
 private slots:
     void updateFontSize();
+    void updateSaveState(QWidget *parent, bool changed);
 
     void highlightCurrentLine();
 
