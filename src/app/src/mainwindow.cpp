@@ -234,7 +234,21 @@ void MainWindow::open()
     QString dirPath = QFileDialog::getExistingDirectory(this, "Choose a folder", QDir::homePath(), QFileDialog::ShowDirsOnly | QFileDialog::DontResolveSymlinks);
 
     model->setRootPath(dirPath);
-    explorer->setRootIndex(model->index(dirPath));
+
+    QModelIndex rootIndex = model->index(dirPath);
+    explorer->setRootIndex(rootIndex.parent());
+
+    QModelIndex parentIndex = rootIndex.parent();
+    int rowCount = model->rowCount(parentIndex);
+
+    for (int i = 0; i < rowCount; ++i) {
+        QModelIndex sibling = model->index(i, 0, parentIndex);
+        if (sibling != rootIndex) {
+            explorer->setRowHidden(i, parentIndex, true);
+        }
+    }
+
+    explorer->setRootIndex(model->index(dirPath).parent());
 
     QSettings settings;
     settings.setValue("rootPath", dirPath);
@@ -620,6 +634,25 @@ void MainWindow::createActions()
             }
         }
     });
+
+
+    connect(model, &QFileSystemModel::directoryLoaded, this, [this](const QString &path) {
+        QSettings settings;
+        QString projectPath = settings.value("rootPath").toString();
+
+        QModelIndex rootIndex = model->index(projectPath);
+        QModelIndex parentIndex = rootIndex.parent();
+
+        if (path == model->filePath(parentIndex)) {
+            int rowCount = model->rowCount(parentIndex);
+            for (int i = 0; i < rowCount; ++i) {
+                QModelIndex sibling = model->index(i, 0, parentIndex);
+                if (sibling != rootIndex) {
+                    explorer->setRowHidden(i, parentIndex, true);
+                }
+            }
+        }
+    });
 }
 
 void MainWindow::createMenus()
@@ -703,6 +736,7 @@ void MainWindow::createTextEditor()
     QString rootPath;
     if (settings.value("rootPath").toString() == "") {
         rootPath = QStandardPaths::writableLocation(QStandardPaths::AppLocalDataLocation) + "/defaultFolderSystem/";
+        settings.setValue("rootPath", rootPath);
     }
     else {
         rootPath = settings.value("rootPath").toString();
@@ -721,11 +755,12 @@ void MainWindow::createTextEditor()
     header = new QLabel("Explorer", this);
     header->setFixedHeight(25);
 
-    QModelIndex rootIndex = model->index(targetPath);
-
     explorer = new QTreeView();
     explorer->setModel(model);
-    explorer->setRootIndex(rootIndex);
+
+    QModelIndex rootIndex = model->index(targetPath);
+    explorer->setRootIndex(rootIndex.parent());
+
     explorer->header()->hide();
     explorer->hideColumn(1);
     explorer->hideColumn(2);
