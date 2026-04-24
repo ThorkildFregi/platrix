@@ -4,6 +4,9 @@
 #include <QWidget>
 #include <QPlainTextEdit>
 
+#include <QMap>
+#include <QString>
+
 QT_BEGIN_NAMESPACE
 class QRect;
 QT_END_NAMESPACE
@@ -13,7 +16,7 @@ class CodeEditor : public QPlainTextEdit
     Q_OBJECT
 
 public:
-    CodeEditor(QWidget *parent = nullptr);
+    CodeEditor(QWidget *parent, QString filePath);
 
     void lineNumberAreaPaintEvent(QPaintEvent *event);
     int lineNumberAreaWidth();
@@ -32,7 +35,14 @@ private slots:
     void updateLineNumberArea(const QRect &rect, int dy);
 
 private:
+    QString getSyntaxConfig(QString filePath);
+    QVector <HighlightingRule> parseJsonToRules(QString path);
+
     QWidget *lineNumberArea;
+
+    QMap<QString, QString> officialSyntaxes = {
+        {".py", "python.strl"}
+    };
 };
 
 class LineNumberArea : public QWidget

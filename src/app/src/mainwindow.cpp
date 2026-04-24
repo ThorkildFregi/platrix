@@ -635,7 +635,7 @@ void MainWindow::createActions()
             if (file.open(QIODevice::ReadOnly | QIODevice::Text)) {
                 auto &manager = SettingsManager::instance();
 
-                CodeEditor *newEditor = new CodeEditor(tabs);
+                CodeEditor *newEditor = new CodeEditor(tabs, filePath);
                 
                 int newIndex = tabs->addTab(newEditor, info.fileName());
                 tabs->setCurrentIndex(newIndex);

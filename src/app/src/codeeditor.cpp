@@ -8,13 +8,31 @@
 #include <QPainter>
 #include <QTextBlock>
 
+#include <QJsonValue>
+#include <QJsonObject>
+#include <QJsonDocument>
+
+#include <QDir>
+#include <QFile>
+#include <QFileInfo>
+#include <QDirIterator>
+#include <QStandardPaths>
+
 #include "codeeditor.h"
+#include "syntaxhighlighter.h"
 
 #include "settingsmanager.h"
 
-CodeEditor::CodeEditor(QWidget *parent)
+CodeEditor::CodeEditor(QWidget *parent, QString filePath)
 {
     lineNumberArea = new LineNumberArea(this);
+
+    highlighter = new SyntaxHighlighter(this->document());
+
+    QString syntaxRulePath = getSyntaxConfig(filePath);
+    QVector<HighlightingRule> rules = parseJsonToRules(syntaxRulePath);
+
+    highlighter->setRules(rules);
 
     setLineWrapMode(QPlainTextEdit::NoWrap);
     installEventFilter(this);
@@ -275,6 +293,45 @@ void CodeEditor::updateLineNumberArea(const QRect &rect, int dy)
     else lineNumberArea->update(0, rect.y(), lineNumberArea->width(), rect.height());
 
     if (rect.contains(viewport()->rect())) updateLineNumberAreaWidth(0);
+}
+
+QString CodeEditor::getSyntaxConfig(QString filePath)
+{
+    QString userSyntaxPath = QStandardPaths::writableLocation(QStandardPaths::AppDataLocation) + "/syntax/";
+
+    QFileInfo file(filePath);
+    QString ext = "." + file.suffix();
+
+    QStringList filters;
+    filters << "*.strl";
+
+    QDirIterator it(userSyntaxPath, filters, QDir::Files, QDirIterator::Subdirectories);
+    while(it.hasNext()) {
+        it.next();
+
+        QFile file(it.filePath());
+        file.open(QIODevice::ReadOnly)
+        
+        QJsonDocument doc = QJsonDocument::fromJson(file.readAll());
+        QJsonObject json = doc.object();
+
+        if (json["extension"] == ext) {
+            return it.filePath();
+        }
+    }
+
+    if (officialSyntaxes.contains(ext)) {
+        return ":/syntaxes/" + officialSyntaxes[ext] + ".strl";
+    }
+
+    return ""
+}
+
+QVector<HighlightingRule> CodeEditor::parseJsonToRule(QString path)
+{
+    QVector<HighlightingRule> rules;
+
+    
 }
 
 

@@ -130,7 +130,11 @@ void ExtensionsDialog::loadExtension()
     
     file.close();
 
-    QString path = QStandardPaths::writableLocation(QStandardPaths::AppLocalDataLocation);
+    QString path = QStandardPaths::writableLocation(QStandardPaths::AppLocalDataLocation) + "/syntax/";
+
+    QDir dir(syntaxPath);
+    if (!dir.exists()) dir.mkpath(".");
+
     QString destPath = QDir(path).filePath(file.fileName());
 
     int i = 1;

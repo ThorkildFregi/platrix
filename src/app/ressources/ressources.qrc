@@ -2,7 +2,7 @@
     <qresource prefix="/">
         <file>themes/dark.qss</file>
         <file>themes/light.qss</file>
-        <file>syntax_rules/python.strl</file>
+        <file>syntaxes/python.strl</file>
         <file>icons/dark_theme/chevron-down.svg</file>
         <file>icons/dark_theme/chevron-up.svg</file>
         <file>icons/light_theme/chevron-down.svg</file>
