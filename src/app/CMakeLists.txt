@@ -12,6 +12,7 @@ target_sources(platrix PRIVATE
 
     src/framelessdialog.cpp
 
+    src/extensionsdialog.cpp
     src/settingsdialog.cpp   
     src/settingsmanager.cpp
     
@@ -23,6 +24,7 @@ target_sources(platrix PRIVATE
 
     includes/framelessdialog.h
 
+    includes/extensionsdialog.h
     includes/settingsdialog.h
     includes/settingsmanager.h
 

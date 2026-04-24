@@ -5,6 +5,7 @@
 #include "filemodel.h"
 #include "codeeditor.h"
 
+#include "extensionsdialog.h"
 #include "settingsdialog.h"
 #include "settingsmanager.h"
 
@@ -149,6 +150,13 @@ void MainWindow::openSettings()
     if (dialog.exec() == QDialog::Accepted) {
         statusBar()->showMessage("Settings applied !", 2000);
     }
+}
+
+void MainWindow::openExtensions()
+{
+    ExtensionsDialog dialog;
+
+    dialog.exec();
 }
 
 void MainWindow::newFile()
@@ -478,6 +486,12 @@ void MainWindow::createActions()
     connect(openSettingsAct, &QAction::triggered, this, &MainWindow::openSettings);
 
 
+    openExtensionsAct = new QAction("&Extensions", this);
+    openExtensionsAct->setStatusTip("Open extensions dialog");
+
+    connect(openExtensionsAct, &QAction::triggered, this, &MainWindow::openExtensions);
+
+
     newAct = new QAction("&New File", this);
     newAct->setShortcuts(QKeySequence::New);
     newAct->setStatusTip("Create a new file");
@@ -667,6 +681,7 @@ void MainWindow::createMenus()
     fileMenu->addSeparator();
     preferencesMenu = fileMenu->addMenu("&Preferences");
     preferencesMenu->addAction(openSettingsAct);
+    preferencesMenu->addAction(openExtensionsAct);
     
     editMenu = customMenuBar->addMenu("&Edit");
     editMenu->addAction(deleteAct);

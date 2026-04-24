@@ -18,7 +18,8 @@
 #include "settingsdialog.h"
 #include "settingsmanager.h"
 
-SettingsDialog::SettingsDialog(QWidget *parent) : FramelessDialog(parent) {
+SettingsDialog::SettingsDialog(QWidget *parent) : FramelessDialog(parent) 
+{
     setWindowTitle("Settings");
     setMinimumSize(800, 600);
 
@@ -51,7 +52,6 @@ SettingsDialog::SettingsDialog(QWidget *parent) : FramelessDialog(parent) {
     settingsLayout = new QVBoxLayout;
     settingsLayout->setAlignment(Qt::AlignTop);
 
-    
     auto &settings = SettingsManager::instance().settings;
 
     uiWidgets.clear();
