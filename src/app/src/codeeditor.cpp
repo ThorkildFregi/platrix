@@ -8,6 +8,7 @@
 #include <QPainter>
 #include <QTextBlock>
 
+#include <QJsonArray>
 #include <QJsonValue>
 #include <QJsonObject>
 #include <QJsonDocument>
@@ -21,6 +22,8 @@
 #include "codeeditor.h"
 #include "syntaxhighlighter.h"
 
+#include "extensionsdialog.h"
+
 #include "settingsmanager.h"
 
 CodeEditor::CodeEditor(QWidget *parent, QString filePath)
@@ -30,9 +33,11 @@ CodeEditor::CodeEditor(QWidget *parent, QString filePath)
     highlighter = new SyntaxHighlighter(this->document());
 
     QString syntaxRulePath = getSyntaxConfig(filePath);
-    QVector<HighlightingRule> rules = parseJsonToRules(syntaxRulePath);
+    if (!syntaxPath.isEmpty()) {
+        QVector<HighlightRule> rules = parseJsonToRules(syntaxRulePath);
 
-    highlighter->setRules(rules);
+        highlighter->setRules(rules);
+    }
 
     setLineWrapMode(QPlainTextEdit::NoWrap);
     installEventFilter(this);
@@ -299,8 +304,8 @@ QString CodeEditor::getSyntaxConfig(QString filePath)
 {
     QString userSyntaxPath = QStandardPaths::writableLocation(QStandardPaths::AppDataLocation) + "/syntax/";
 
-    QFileInfo file(filePath);
-    QString ext = "." + file.suffix();
+    QFileInfo fileInfo(filePath);
+    QString ext = "." + fileInfo.suffix();
 
     QStringList filters;
     filters << "*.strl";
@@ -310,7 +315,7 @@ QString CodeEditor::getSyntaxConfig(QString filePath)
         it.next();
 
         QFile file(it.filePath());
-        file.open(QIODevice::ReadOnly)
+        file.open(QIODevice::ReadOnly);
         
         QJsonDocument doc = QJsonDocument::fromJson(file.readAll());
         QJsonObject json = doc.object();
@@ -324,14 +329,37 @@ QString CodeEditor::getSyntaxConfig(QString filePath)
         return ":/syntaxes/" + officialSyntaxes[ext] + ".strl";
     }
 
-    return ""
+    return "";
 }
 
-QVector<HighlightingRule> CodeEditor::parseJsonToRule(QString path)
+QVector<HighlightRule> CodeEditor::parseJsonToRules(QString path)
 {
-    QVector<HighlightingRule> rules;
+    QVector<HighlightRule> rules;
 
-    
+    if (ExtensionsDialog::verifyFileAccordance(path)) {
+        QFile file(path);
+        file.open(QIODevice::ReadOnly);
+
+        QJsonDocument doc = QJsonDocument::fromJson(file.readAll());
+        QJsonObject json = doc.object();
+
+        QJsonArray rulesArray = json["rules"].toArray();
+        for (int i = 0; i < rulesArray.size(); ++i) {
+            QJsonObject ruleObj = rulesArray[i].toObject();
+
+            HighlightRule rule;
+            rule.pattern = QRegularExpression(ruleObj["pattern"].toString());
+            
+            QTextCharFormat format;
+            format.setForeground(QColor(ruleObj["color"].toString()));
+            if(ruleObj["bold"].toBool()) format.setFontWeight(QFont::Bold);
+            
+            rule.format = format;
+            rules.append(rule);
+        }
+    }
+
+    return rules;
 }
 
 

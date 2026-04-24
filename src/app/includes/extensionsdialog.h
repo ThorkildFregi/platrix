@@ -7,6 +7,8 @@ class ExtensionsDialog : public FramelessDialog
 public:
     explicit ExtensionsDialog(QWidget *parent = nullptr);
 
+    bool verifFileAccordance(QString fileName);
+
 private slots:
     void loadSyntaxRules();
 

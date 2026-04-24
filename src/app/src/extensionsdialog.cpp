@@ -2,7 +2,7 @@
 #include <QWidget>
 #include <QPushButton>
 
-#include <QMessageShow>
+#include <QMessageBox>
 
 #include <QVBoxLayout>
 
@@ -59,21 +59,12 @@ ExtensionsDialog::ExtensionsDialog(QWidget *parent) : FramelessDialog(parent)
     setLayout(mainLayout);
 }
 
-void ExtensionsDialog::loadExtension()
+bool ExtensionsDialog::verifFileAccordance(QString path)
 {
-    QString filters = "Syntax rules file (*.strl)"
-
-    QString srName = QFileDialog::getOpenFileName(this, "Open a file", QDir::homePath(), QFileDialog::DontResolveSymlinks);
-
-    if (sr.isEmpty()) return;
-    
-    QFileInfo file (srName);
-    QString dirPath = file.absolutePath();
-
-    QFile file(getSettingsPath());
+    QFile file(path);
     if (!file.open(QIODevice::ReadOnly)) {
         QMessageBox::critical(this, "Error", "File not found !");
-        return;
+        return false;
     }
 
     QJsonDocument doc = QJsonDocument::fromJson(file.readAll());
@@ -81,23 +72,23 @@ void ExtensionsDialog::loadExtension()
 
     if (!json.contains("extension") || !json.contains("rules")) {
         QMessageBox::critical(this, "Error", "Missing 'extension' or 'rules'.");
-        return;
+        return false;
     }
 
     if (!json["extension"].isString() || !json["rules"].isArray()) {
         QMessageBox::critical(this, "Error", "Invalid data types.");
-        return;
+        return false;
     }
 
     if (json["extension"].toString().isEmpty() || json["rules"].toArray().isEmpty()) {
         QMessageBox::critical(this, "Error", "Fields cannot be empty.");
-        return;
+        return false;
     }
 
     for (const QString &key : json.keys()) {
         if (key != "extension" && key != "rules") {
             QMessageBox::critical(this, "Error", QString("Unknown parameter: %1").arg(key));
-            return;
+            return false;
         }
     }
 
@@ -107,42 +98,57 @@ void ExtensionsDialog::loadExtension()
 
         if (!rule.contains("pattern") || !rule.contains("color")) {
             QMessageBox::critical(this, "Error", QString("Rule %1 is missing parameters.").arg(i));
-            return;
+            return false;
         }
 
         if (!rule["pattern"].isString() || !rule["color"].isString()) {
             QMessageBox::critical(this, "Error", QString("Rule %1 has invalid types.").arg(i));
-            return;
+            return false;
         }
 
         QRegularExpression re(rule["pattern"].toString());
         if (!re.isValid()) {
             QMessageBox::critical(this, "Error", QString("Regex error in rule %1: %2").arg(i).arg(re.errorString()));
-            return;
+            return false;
         }
 
         QString hexColor = rule["color"].toString();
         if (!QColor::isValidColor(hexColor)) {
             QMessageBox::critical(this, "File not in accordance", QString("The color '%1' is not a valid hexadecimal format (ex: #RRGGBB).").arg(hexColor));
-            return;
+            return false;
         }
     }
     
     file.close();
 
-    QString path = QStandardPaths::writableLocation(QStandardPaths::AppLocalDataLocation) + "/syntax/";
+    return true;
+} 
+
+void ExtensionsDialog::loadSyntaxRules()
+{
+    QString filters = "Syntax rules file (*.strl)"
+
+    QString filePath = QFileDialog::getOpenFileName(this, "Open a file", QDir::homePath(), QFileDialog::DontResolveSymlinks);
+
+    if (filePath.isEmpty()) return;
+
+    QFileInfo file(filePath);
+    
+    if (!verifFileAccordance(filePath)) return;
+
+    QString syntaxPath = QStandardPaths::writableLocation(QStandardPaths::AppLocalDataLocation) + "/syntax/";
 
     QDir dir(syntaxPath);
     if (!dir.exists()) dir.mkpath(".");
 
-    QString destPath = QDir(path).filePath(file.fileName());
+    QString destPath = QDir(syntaxPath).filePath(file.fileName());
 
     int i = 1;
     while (QFile::exists(destPath)) {
-        destPath = QDir(destDir).filePath(QString("%1_copy%2.%3").arg(sourceInfo.baseName()).arg(i++).arg(sourceInfo.suffix()));
+        destPath = QDir(destPath).filePath(QString("%1_copy%2.%3").arg(file.baseName()).arg(i++).arg(file.suffix()));
     }
 
-    if (copyRecursively(dirPath, destPath)) {
+    if (QFile::copy(filePath, destPath)) {
         statusBar()->showMessage("Loaded syntax rules file to: " + destPath, 2000);
     } else {
         QMessageBox::critical(this, "Error", "Could not copy syntax rules file !");

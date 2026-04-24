@@ -9,7 +9,7 @@ target_sources(platrix PRIVATE
 
     src/filemodel.cpp
     src/codeeditor.cpp
-    src/syntaxhiglighter.cpp
+    src/syntaxhighlighter.cpp
 
     src/framelessdialog.cpp
 
@@ -22,7 +22,7 @@ target_sources(platrix PRIVATE
 
     includes/filemodel.h
     includes/codeeditor.h
-    includes/syntaxhiglighter.h
+    includes/syntaxhighlighter.h
 
     includes/framelessdialog.h
 

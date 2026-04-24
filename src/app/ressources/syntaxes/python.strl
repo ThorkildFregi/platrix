@@ -1,0 +1,47 @@
+{
+  "extension": ".py",
+  "rules": [
+    {
+      "name": "keywords",
+      "pattern": "\\b(def|class|return|if|else|elif|for|while|import|from|as|try|except|finally|with|lambda|global|nonlocal|pass|break|continue|in|is|and|or|not|yield|del|assert)\\b",
+      "color": "#ff79c6",
+      "bold": true
+    },
+    {
+      "name": "builtins",
+      "pattern": "\\b(print|len|range|enumerate|zip|map|filter|int|str|float|list|dict|set|tuple|type|input|open|sum|min|max|abs|any|all)\\b",
+      "color": "#8be9fd",
+      "bold": false
+    },
+    {
+      "name": "strings",
+      "pattern": "(\".*?\"|'.*?')",
+      "color": "#f1fa8c",
+      "bold": false
+    },
+    {
+      "name": "comments",
+      "pattern": "#.*",
+      "color": "#6272a4",
+      "italic": true
+    },
+    {
+      "name": "numbers",
+      "pattern": "\\b\\d+(\\.\\d+)?\\b",
+      "color": "#bd93f9",
+      "bold": false
+    },
+    {
+      "name": "decorators",
+      "pattern": "@[a-zA-Z0-9_.]+",
+      "color": "#50fa7b",
+      "bold": false
+    },
+    {
+      "name": "special_values",
+      "pattern": "\\b(True|False|None|self)\\b",
+      "color": "#bd93f9",
+      "italic": true
+    }
+  ]
+}

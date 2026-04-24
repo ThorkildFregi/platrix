@@ -11,6 +11,11 @@ QT_BEGIN_NAMESPACE
 class QRect;
 QT_END_NAMESPACE
 
+struct HighlightRule {
+    QRegularExpression pattern;
+    QTextCharFormat format;
+};
+
 class CodeEditor : public QPlainTextEdit
 {
     Q_OBJECT
@@ -36,7 +41,7 @@ private slots:
 
 private:
     QString getSyntaxConfig(QString filePath);
-    QVector <HighlightingRule> parseJsonToRules(QString path);
+    QVector <HighlightRule> parseJsonToRules(QString path);
 
     QWidget *lineNumberArea;
 
