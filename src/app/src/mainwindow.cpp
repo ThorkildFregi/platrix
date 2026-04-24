@@ -320,6 +320,7 @@ void MainWindow::deleteF()
         } 
         else {
             QMessageBox::critical(this, "Error", "File/Folder can't be found !");
+            return;
         }
     }
 }
@@ -370,6 +371,7 @@ void MainWindow::cut()
             
         } else {
             QMessageBox::critical(this, "Error", "Could not cut file !");
+            return;
         }
     }
 
@@ -430,12 +432,14 @@ void MainWindow::paste()
                 statusBar()->showMessage("Pasted: " + destPath, 2000);
             } else {
                 QMessageBox::critical(this, "Error", "Could not paste file !");
+                return;
             }
         } else {
             if (copyRecursively(sourcePaths.at(i), destPath)) {
                 statusBar()->showMessage("Pasted folder: " + destPath, 2000);
             } else {
                 QMessageBox::critical(this, "Error", "Could not paste folder !");
+                return;
             }
         }
     }
@@ -464,7 +468,7 @@ void MainWindow::updateFontSize(const QVariant &value)
 void MainWindow::applyTheme(const QVariant &value) {
     int isDark = value.toBool();
 
-    QString filename = isDark ? ":/dark.qss" : ":/light.qss";
+    QString filename = isDark ? ":/themes/dark.qss" : ":/themes/light.qss";
     QFile file(filename);
     
     if (file.open(QFile::ReadOnly | QFile::Text)) {
@@ -475,6 +479,7 @@ void MainWindow::applyTheme(const QVariant &value) {
         file.close();
     } else {
         QMessageBox::critical(this, "Error", "Style can't be found !");
+        return;
     }
 }
 

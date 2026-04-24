@@ -8,7 +8,7 @@ public:
     explicit ExtensionsDialog(QWidget *parent = nullptr);
 
 private slots:
-    void loadExtension(QString path);
+    void loadSyntaxRules();
 
 private:
     QPushButton *loadBtn;

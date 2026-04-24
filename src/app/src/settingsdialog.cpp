@@ -99,6 +99,7 @@ SettingsDialog::SettingsDialog(QWidget *parent) : FramelessDialog(parent)
         } 
         else {
             QMessageBox::critical(this, "Error", "A setting is not of type int or bool !");
+            return;
         }
     }
 
