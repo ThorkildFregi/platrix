@@ -9,14 +9,17 @@
 #include <QVariant>
 #include <QStringList>
 
+#include "framelessdialog.h"
+
 QT_BEGIN_NAMESPACE
+class QHBoxLayout;
 class QVBoxLayout;
 class QPushButton;
 
 class QScrollArea;
 QT_END_NAMESPACE
 
-class SettingsDialog : public QDialog 
+class SettingsDialog : public FramelessDialog 
 {
     Q_OBJECT
 
@@ -33,6 +36,7 @@ private:
     QVBoxLayout *settingsLayout;
 
     QWidget *settingsWidget;
+    QWidget *titleBar;
 
     QScrollArea *settingsScrollArea;
 
