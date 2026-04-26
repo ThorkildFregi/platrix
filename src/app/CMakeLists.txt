@@ -8,19 +8,25 @@ target_sources(platrix PRIVATE
     src/mainwindow.cpp
 
     src/filemodel.cpp
+    src/codeeditor.cpp
+    src/syntaxhighlighter.cpp
 
     src/framelessdialog.cpp
 
     src/settingsdialog.cpp   
     src/settingsmanager.cpp
+    src/extensionsdialog.cpp
     
 
     includes/mainwindow.h
 
     includes/filemodel.h
+    includes/codeeditor.h
+    includes/syntaxhighlighter.h
 
     includes/framelessdialog.h
 
+    includes/extensionsdialog.h
     includes/settingsdialog.h
     includes/settingsmanager.h
 

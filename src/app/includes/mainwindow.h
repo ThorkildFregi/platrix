@@ -57,6 +57,7 @@ private slots:
     void onSettingChanged(const QString &key, const QVariant &value);
     
     void openSettings();
+    void openExtensions();
     
     void newFile();
     void newFolder();
@@ -118,6 +119,7 @@ private:
     QMenuBar *customMenuBar;
 
     QAction *openSettingsAct;
+    QAction *openExtensionsAct;
     
     QAction *newAct;
     QAction *newFAct;

@@ -3,7 +3,9 @@
 #include "mainwindow.h"
 
 #include "filemodel.h"
+#include "codeeditor.h"
 
+#include "extensionsdialog.h"
 #include "settingsdialog.h"
 #include "settingsmanager.h"
 
@@ -31,7 +33,7 @@ MainWindow::MainWindow()
     statusBar()->showMessage(message);
 
     setWindowTitle("Platrix");
-    setMinimumSize(160, 160);
+    setMinimumSize(800, 600);
 }
 
 #ifndef QT_NO_CONTEXTMENU
@@ -59,24 +61,7 @@ bool MainWindow::eventFilter(QObject *obj, QEvent *event)
             explorer->setCurrentIndex(QModelIndex());
         }
     }
-
-    if (event->type() == QEvent::KeyPress) {
-        QKeyEvent *keyEvent = static_cast<QKeyEvent *>(event);
-
-        if (keyEvent->key() == Qt::Key_Tab) {
-            QTextEdit *editor = qobject_cast<QTextEdit*>(obj);
-            auto &manager = SettingsManager::instance();
-
-            if (editor) {
-                QString spaces = QString(manager.get("tabSize").toInt(), ' ');
-
-                editor->insertPlainText(spaces); 
-
-                return true;
-            }
-        }
-    }
-
+    
     if (event->type() == QEvent::MouseMove) {
         QMouseEvent *mouseEvent = static_cast<QMouseEvent*>(event);
         this->mouseMoveEvent(mouseEvent);
@@ -167,6 +152,13 @@ void MainWindow::openSettings()
     }
 }
 
+void MainWindow::openExtensions()
+{
+    ExtensionsDialog dialog;
+
+    dialog.exec();
+}
+
 void MainWindow::newFile()
 {
     QModelIndex currentIndex = explorer->currentIndex();
@@ -250,7 +242,21 @@ void MainWindow::open()
     QString dirPath = QFileDialog::getExistingDirectory(this, "Choose a folder", QDir::homePath(), QFileDialog::ShowDirsOnly | QFileDialog::DontResolveSymlinks);
 
     model->setRootPath(dirPath);
-    explorer->setRootIndex(model->index(dirPath));
+
+    QModelIndex rootIndex = model->index(dirPath);
+    explorer->setRootIndex(rootIndex.parent());
+
+    QModelIndex parentIndex = rootIndex.parent();
+    int rowCount = model->rowCount(parentIndex);
+
+    for (int i = 0; i < rowCount; ++i) {
+        QModelIndex sibling = model->index(i, 0, parentIndex);
+        if (sibling != rootIndex) {
+            explorer->setRowHidden(i, parentIndex, true);
+        }
+    }
+
+    explorer->setRootIndex(model->index(dirPath).parent());
 
     QSettings settings;
     settings.setValue("rootPath", dirPath);
@@ -265,7 +271,7 @@ void MainWindow::save()
 
     QString filePath = openedFiles.key(currentIndex);
 
-    QTextEdit *currentEditor = qobject_cast<QTextEdit*>(tabs->currentWidget());
+    CodeEditor *currentEditor = qobject_cast<CodeEditor*>(tabs->currentWidget());
 
     if (currentEditor && !filePath.isEmpty()) {
         QFile file(filePath);
@@ -276,6 +282,10 @@ void MainWindow::save()
             out << currentEditor->toPlainText();
 
             statusBar()->showMessage("Saved: " + filePath, 2000);
+
+            currentEditor->document()->setModified(false);
+            
+            tabs->setTabIcon(tabs->currentIndex(), QIcon());
 
             file.close();
         }
@@ -310,6 +320,7 @@ void MainWindow::deleteF()
         } 
         else {
             QMessageBox::critical(this, "Error", "File/Folder can't be found !");
+            return;
         }
     }
 }
@@ -360,6 +371,7 @@ void MainWindow::cut()
             
         } else {
             QMessageBox::critical(this, "Error", "Could not cut file !");
+            return;
         }
     }
 
@@ -420,12 +432,14 @@ void MainWindow::paste()
                 statusBar()->showMessage("Pasted: " + destPath, 2000);
             } else {
                 QMessageBox::critical(this, "Error", "Could not paste file !");
+                return;
             }
         } else {
             if (copyRecursively(sourcePaths.at(i), destPath)) {
                 statusBar()->showMessage("Pasted folder: " + destPath, 2000);
             } else {
                 QMessageBox::critical(this, "Error", "Could not paste folder !");
+                return;
             }
         }
     }
@@ -441,7 +455,7 @@ void MainWindow::updateFontSize(const QVariant &value)
     int size = value.toInt();
 
     for (int i = 0; i < tabs->count(); i++) {
-        QTextEdit *editor = qobject_cast<QTextEdit*>(tabs->widget(i));
+        CodeEditor *editor = qobject_cast<CodeEditor*>(tabs->widget(i));
 
         if (editor) {
             QFont f = editor->font();
@@ -454,7 +468,7 @@ void MainWindow::updateFontSize(const QVariant &value)
 void MainWindow::applyTheme(const QVariant &value) {
     int isDark = value.toBool();
 
-    QString filename = isDark ? ":/dark.qss" : ":/light.qss";
+    QString filename = isDark ? ":/themes/dark.qss" : ":/themes/light.qss";
     QFile file(filename);
     
     if (file.open(QFile::ReadOnly | QFile::Text)) {
@@ -465,6 +479,7 @@ void MainWindow::applyTheme(const QVariant &value) {
         file.close();
     } else {
         QMessageBox::critical(this, "Error", "Style can't be found !");
+        return;
     }
 }
 
@@ -474,6 +489,12 @@ void MainWindow::createActions()
     openSettingsAct->setStatusTip("Open settings dialog");
 
     connect(openSettingsAct, &QAction::triggered, this, &MainWindow::openSettings);
+
+
+    openExtensionsAct = new QAction("&Extensions", this);
+    openExtensionsAct->setStatusTip("Open extensions dialog");
+
+    connect(openExtensionsAct, &QAction::triggered, this, &MainWindow::openExtensions);
 
 
     newAct = new QAction("&New File", this);
@@ -614,26 +635,40 @@ void MainWindow::createActions()
             if (file.open(QIODevice::ReadOnly | QIODevice::Text)) {
                 auto &manager = SettingsManager::instance();
 
-                QTextEdit *newEditor = new QTextEdit();
-                newEditor->setPlainText(file.readAll());
-                newEditor->installEventFilter(this);
-
-                QFont font = newEditor->font();
-                font.setPointSize(manager.get("fontSize").toInt());
-
-                QFontMetrics metrics(newEditor->font());
-
-                newEditor->setTabStopDistance(manager.get("tabSize").toInt() * metrics.horizontalAdvance(' '));
-                newEditor->setFont(font);
+                CodeEditor *newEditor = new CodeEditor(tabs, filePath);
                 
                 int newIndex = tabs->addTab(newEditor, info.fileName());
                 tabs->setCurrentIndex(newIndex);
+
+                newEditor->setPlainText(file.readAll());
+                newEditor->document()->setModified(false);
+
+                tabs->setTabIcon(tabs->currentIndex(), QIcon());
 
                 openedFiles.insert(filePath, newIndex);
 
                 statusBar()->showMessage("File loaded: " + filePath, 2000);
 
                 file.close();
+            }
+        }
+    });
+
+
+    connect(model, &QFileSystemModel::directoryLoaded, this, [this](const QString &path) {
+        QSettings settings;
+        QString projectPath = settings.value("rootPath").toString();
+
+        QModelIndex rootIndex = model->index(projectPath);
+        QModelIndex parentIndex = rootIndex.parent();
+
+        if (path == model->filePath(parentIndex)) {
+            int rowCount = model->rowCount(parentIndex);
+            for (int i = 0; i < rowCount; ++i) {
+                QModelIndex sibling = model->index(i, 0, parentIndex);
+                if (sibling != rootIndex) {
+                    explorer->setRowHidden(i, parentIndex, true);
+                }
             }
         }
     });
@@ -651,6 +686,7 @@ void MainWindow::createMenus()
     fileMenu->addSeparator();
     preferencesMenu = fileMenu->addMenu("&Preferences");
     preferencesMenu->addAction(openSettingsAct);
+    preferencesMenu->addAction(openExtensionsAct);
     
     editMenu = customMenuBar->addMenu("&Edit");
     editMenu->addAction(deleteAct);
@@ -720,6 +756,7 @@ void MainWindow::createTextEditor()
     QString rootPath;
     if (settings.value("rootPath").toString() == "") {
         rootPath = QStandardPaths::writableLocation(QStandardPaths::AppLocalDataLocation) + "/defaultFolderSystem/";
+        settings.setValue("rootPath", rootPath);
     }
     else {
         rootPath = settings.value("rootPath").toString();
@@ -738,11 +775,12 @@ void MainWindow::createTextEditor()
     header = new QLabel("Explorer", this);
     header->setFixedHeight(25);
 
-    QModelIndex rootIndex = model->index(targetPath);
-
     explorer = new QTreeView();
     explorer->setModel(model);
-    explorer->setRootIndex(rootIndex);
+
+    QModelIndex rootIndex = model->index(targetPath);
+    explorer->setRootIndex(rootIndex.parent());
+
     explorer->header()->hide();
     explorer->hideColumn(1);
     explorer->hideColumn(2);
