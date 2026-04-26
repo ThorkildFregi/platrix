@@ -21,7 +21,7 @@ QTreeView::item:selected {
     border-left: 3px solid #48a3b8;
 }
 
-QTextEdit {
+QPlainTextEdit {
     background-color: #FFFFFF;
     color: #BABFD9;
     border: 1px solid #BABFD9;
