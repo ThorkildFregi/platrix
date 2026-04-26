@@ -3,9 +3,10 @@
 
 #include <QSyntaxHighlighter>
 
+#include <QRegularExpression>
+
 QT_BEGIN_NAMESPACE
 class QTextCharFormat;
-class QRegularExpression;
 QT_END_NAMESPACE
 
 struct HighlightRule {
@@ -20,13 +21,13 @@ class SyntaxHighlighter : public QSyntaxHighlighter
 public:
     SyntaxHighlighter(QTextDocument *parent = nullptr);
 
-    void setRules(const QVector<HighlightingRule> &rules);
+    void setRules(const QVector<HighlightRule> &rules);
 
 protected:
-    void HighlightBlock(const QString &text) override;
+    void highlightBlock(const QString &text) override;
 
 private:
-    QVector<HighlightingRule> highlightongRules;
+    QVector<HighlightRule> highlightingRules;
 };
 
 #endif

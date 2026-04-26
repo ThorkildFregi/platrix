@@ -3,7 +3,11 @@
 
 #include "syntaxhighlighter.h"
 
-void SyntaxHightlighter::setRules(const QVector<HighlightingRule> &rules)
+SyntaxHighlighter::SyntaxHighlighter(QTextDocument *parent) : QSyntaxHighlighter(parent)
+{
+}
+
+void SyntaxHighlighter::setRules(const QVector<HighlightRule> &rules)
 {
     highlightingRules = rules;
     rehighlight();
@@ -11,7 +15,7 @@ void SyntaxHightlighter::setRules(const QVector<HighlightingRule> &rules)
 
 void SyntaxHighlighter::highlightBlock(const QString &text)
 {
-    for (const HiglightingRule &rule : highlightingRules) {
+    for (const HighlightRule &rule : highlightingRules) {
         QRegularExpressionMatchIterator matchIterator = rule.pattern.globalMatch(text);
 
         while (matchIterator.hasNext()) {

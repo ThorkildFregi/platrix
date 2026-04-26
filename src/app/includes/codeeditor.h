@@ -7,14 +7,11 @@
 #include <QMap>
 #include <QString>
 
+#include "syntaxhighlighter.h"
+
 QT_BEGIN_NAMESPACE
 class QRect;
 QT_END_NAMESPACE
-
-struct HighlightRule {
-    QRegularExpression pattern;
-    QTextCharFormat format;
-};
 
 class CodeEditor : public QPlainTextEdit
 {
@@ -42,6 +39,8 @@ private slots:
 private:
     QString getSyntaxConfig(QString filePath);
     QVector <HighlightRule> parseJsonToRules(QString path);
+
+    SyntaxHighlighter *highlighter;
 
     QWidget *lineNumberArea;
 

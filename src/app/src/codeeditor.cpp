@@ -33,7 +33,7 @@ CodeEditor::CodeEditor(QWidget *parent, QString filePath)
     highlighter = new SyntaxHighlighter(this->document());
 
     QString syntaxRulePath = getSyntaxConfig(filePath);
-    if (!syntaxPath.isEmpty()) {
+    if (!syntaxRulePath.isEmpty()) {
         QVector<HighlightRule> rules = parseJsonToRules(syntaxRulePath);
 
         highlighter->setRules(rules);
@@ -315,7 +315,7 @@ QString CodeEditor::getSyntaxConfig(QString filePath)
         it.next();
 
         QFile file(it.filePath());
-        file.open(QIODevice::ReadOnly);
+        if (!file.open(QIODevice::ReadOnly)) return "";
         
         QJsonDocument doc = QJsonDocument::fromJson(file.readAll());
         QJsonObject json = doc.object();
@@ -326,7 +326,7 @@ QString CodeEditor::getSyntaxConfig(QString filePath)
     }
 
     if (officialSyntaxes.contains(ext)) {
-        return ":/syntaxes/" + officialSyntaxes[ext] + ".strl";
+        return ":/syntaxes/" + officialSyntaxes[ext];
     }
 
     return "";
@@ -338,7 +338,7 @@ QVector<HighlightRule> CodeEditor::parseJsonToRules(QString path)
 
     if (ExtensionsDialog::verifyFileAccordance(path)) {
         QFile file(path);
-        file.open(QIODevice::ReadOnly);
+        if (!file.open(QIODevice::ReadOnly)) return rules;
 
         QJsonDocument doc = QJsonDocument::fromJson(file.readAll());
         QJsonObject json = doc.object();

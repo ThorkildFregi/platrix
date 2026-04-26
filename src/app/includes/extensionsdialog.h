@@ -7,13 +7,13 @@ class ExtensionsDialog : public FramelessDialog
 public:
     explicit ExtensionsDialog(QWidget *parent = nullptr);
 
-    bool verifFileAccordance(QString fileName);
+    static bool verifyFileAccordance(QString fileName);
 
 private slots:
     void loadSyntaxRules();
 
 private:
-    QPushButton *loadBtn;
+    QPushButton *loadSRBtn;
 
     QWidget *titleBar;
 };

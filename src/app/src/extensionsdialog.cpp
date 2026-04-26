@@ -1,10 +1,20 @@
 #include <QLabel>
 #include <QWidget>
 #include <QPushButton>
-
 #include <QMessageBox>
 
 #include <QVBoxLayout>
+
+#include <QDir>
+#include <QFile>
+#include <QFileInfo>
+#include <QFileDialog>
+#include <QStandardPaths>
+
+#include <QJsonArray>
+#include <QJsonObject>
+#include <QJsonDocument>
+#include <QRegularExpression>
 
 #include "framelessdialog.h"
 
@@ -41,29 +51,29 @@ ExtensionsDialog::ExtensionsDialog(QWidget *parent) : FramelessDialog(parent)
 
     connect(btnClose, &QPushButton::clicked, this, &ExtensionsDialog::close);
 
-    QLabel *labelLdSRBtn = new QLabel;
-    labelLoadBtn->setText("Load a syntax rules");
+    QLabel *labelLoadSRBtn = new QLabel;
+    labelLoadSRBtn->setText("Load a syntax rules");
 
     loadSRBtn = new QPushButton("Load Syntax Rules");
 
-    connect(loadSRBtn, &QPushButton::clicked, this, &ExtensionsDialog::loadSyntaxRules)
+    connect(loadSRBtn, &QPushButton::clicked, this, &ExtensionsDialog::loadSyntaxRules);
 
     QVBoxLayout *mainLayout = new QVBoxLayout(this);
     mainLayout->setContentsMargins(5, 0, 5, 5);
 
     mainLayout->addWidget(titleBar);
-    mainLayout->addWidget(labelLoadBtn);
-    mainLayout->addWidget(loadBtn);
+    mainLayout->addWidget(labelLoadSRBtn);
+    mainLayout->addWidget(loadSRBtn);
     mainLayout->addStretch();
 
     setLayout(mainLayout);
 }
 
-bool ExtensionsDialog::verifFileAccordance(QString path)
+bool ExtensionsDialog::verifyFileAccordance(QString path)
 {
     QFile file(path);
     if (!file.open(QIODevice::ReadOnly)) {
-        QMessageBox::critical(this, "Error", "File not found !");
+        QMessageBox::critical(nullptr, "Error", "File not found !");
         return false;
     }
 
@@ -71,23 +81,23 @@ bool ExtensionsDialog::verifFileAccordance(QString path)
     QJsonObject json = doc.object();
 
     if (!json.contains("extension") || !json.contains("rules")) {
-        QMessageBox::critical(this, "Error", "Missing 'extension' or 'rules'.");
+        QMessageBox::critical(nullptr, "Error", "Missing 'extension' or 'rules'.");
         return false;
     }
 
     if (!json["extension"].isString() || !json["rules"].isArray()) {
-        QMessageBox::critical(this, "Error", "Invalid data types.");
+        QMessageBox::critical(nullptr, "Error", "Invalid data types.");
         return false;
     }
 
     if (json["extension"].toString().isEmpty() || json["rules"].toArray().isEmpty()) {
-        QMessageBox::critical(this, "Error", "Fields cannot be empty.");
+        QMessageBox::critical(nullptr, "Error", "Fields cannot be empty.");
         return false;
     }
 
     for (const QString &key : json.keys()) {
         if (key != "extension" && key != "rules") {
-            QMessageBox::critical(this, "Error", QString("Unknown parameter: %1").arg(key));
+            QMessageBox::critical(nullptr, "Error", QString("Unknown parameter: %1").arg(key));
             return false;
         }
     }
@@ -97,24 +107,24 @@ bool ExtensionsDialog::verifFileAccordance(QString path)
         QJsonObject rule = rulesArray[i].toObject();
 
         if (!rule.contains("pattern") || !rule.contains("color")) {
-            QMessageBox::critical(this, "Error", QString("Rule %1 is missing parameters.").arg(i));
+            QMessageBox::critical(nullptr, "Error", QString("Rule %1 is missing parameters.").arg(i));
             return false;
         }
 
         if (!rule["pattern"].isString() || !rule["color"].isString()) {
-            QMessageBox::critical(this, "Error", QString("Rule %1 has invalid types.").arg(i));
+            QMessageBox::critical(nullptr, "Error", QString("Rule %1 has invalid types.").arg(i));
             return false;
         }
 
         QRegularExpression re(rule["pattern"].toString());
         if (!re.isValid()) {
-            QMessageBox::critical(this, "Error", QString("Regex error in rule %1: %2").arg(i).arg(re.errorString()));
+            QMessageBox::critical(nullptr, "Error", QString("Regex error in rule %1: %2").arg(i).arg(re.errorString()));
             return false;
         }
 
         QString hexColor = rule["color"].toString();
-        if (!QColor::isValidColor(hexColor)) {
-            QMessageBox::critical(this, "File not in accordance", QString("The color '%1' is not a valid hexadecimal format (ex: #RRGGBB).").arg(hexColor));
+        if (!QColor::isValidColorName(hexColor)) {
+            QMessageBox::critical(nullptr, "File not in accordance", QString("The color '%1' is not a valid hexadecimal format (ex: #RRGGBB).").arg(hexColor));
             return false;
         }
     }
@@ -126,30 +136,30 @@ bool ExtensionsDialog::verifFileAccordance(QString path)
 
 void ExtensionsDialog::loadSyntaxRules()
 {
-    QString filters = "Syntax rules file (*.strl)"
+    QString filters = "Syntax rules file (*.strl)";
 
-    QString filePath = QFileDialog::getOpenFileName(this, "Open a file", QDir::homePath(), QFileDialog::DontResolveSymlinks);
+    QString filePath = QFileDialog::getOpenFileName(this, "Open a file", QDir::homePath(), filters, nullptr, QFileDialog::DontResolveSymlinks);
 
     if (filePath.isEmpty()) return;
 
-    QFileInfo file(filePath);
+    QFileInfo fileInfo(filePath);
     
-    if (!verifFileAccordance(filePath)) return;
+    if (!verifyFileAccordance(filePath)) return;
 
     QString syntaxPath = QStandardPaths::writableLocation(QStandardPaths::AppLocalDataLocation) + "/syntax/";
 
     QDir dir(syntaxPath);
     if (!dir.exists()) dir.mkpath(".");
 
-    QString destPath = QDir(syntaxPath).filePath(file.fileName());
+    QString destPath = QDir(syntaxPath).filePath(fileInfo.fileName());
 
     int i = 1;
     while (QFile::exists(destPath)) {
-        destPath = QDir(destPath).filePath(QString("%1_copy%2.%3").arg(file.baseName()).arg(i++).arg(file.suffix()));
+        destPath = QDir(destPath).filePath(QString("%1_copy%2.%3").arg(fileInfo.baseName()).arg(i++).arg(fileInfo.suffix()));
     }
 
     if (QFile::copy(filePath, destPath)) {
-        statusBar()->showMessage("Loaded syntax rules file to: " + destPath, 2000);
+        QMessageBox::information(this, "Success", "Loaded syntax rules file to: " + destPath);
     } else {
         QMessageBox::critical(this, "Error", "Could not copy syntax rules file !");
         return;
