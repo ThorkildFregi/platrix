@@ -5,7 +5,7 @@
       "name": "keywords",
       "pattern": "\\b(def|class|return|if|else|elif|for|while|import|from|as|try|except|finally|with|lambda|global|nonlocal|pass|break|continue|in|is|and|or|not|yield|del|assert)\\b",
       "color": "#ff79c6",
-      "bold": true
+      "bold": false
     },
     {
       "name": "builtins",
